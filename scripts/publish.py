@@ -32,8 +32,8 @@ class Note:
     has_published: bool
 
 
-def run(cmd, cwd=None, check=True):
-    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+def run(cmd, cwd=None, check=True, env=None):
+    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, env=env)
     if check and result.returncode != 0:
         sys.stderr.write(result.stderr or result.stdout)
         raise SystemExit(result.returncode)
@@ -306,6 +306,8 @@ def ensure_export():
         )
         raise SystemExit(1)
     EXPORT_ROOT.mkdir(parents=True, exist_ok=True)
+    env = os.environ.copy()
+    env["NOTES_EXPORT_TAG_FILTER"] = "#blog"
     run(
         cmd_prefix
         + [
@@ -317,7 +319,8 @@ def ensure_export():
             "&title-&id",
             "--use-subdirs",
             "false",
-        ]
+        ],
+        env=env,
     )
 
 
