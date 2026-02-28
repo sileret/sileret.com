@@ -1,0 +1,21 @@
+{{ define "main" }}
+  <article class="post">
+    <header class="post-header">
+      <h1>{{ .Title }}</h1>
+      <p class="meta">
+        <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "Jan 2, 2006" }}</time>
+        {{ if ne .Lastmod .Date }}<span class="meta-sep">•</span><span>Updated {{ .Lastmod.Format "Jan 2, 2006" }}</span>{{ end }}
+      </p>
+      {{ with .Params.tags }}
+        <p class="tag-row">
+          {{ range . }}
+            <a class="tag" href="/tags/{{ . | urlize }}/">#{{ . }}</a>
+          {{ end }}
+        </p>
+      {{ end }}
+    </header>
+    <div class="content">
+      {{ .Content }}
+    </div>
+  </article>
+{{ end }}

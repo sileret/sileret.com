@@ -1,0 +1,28 @@
+{{ define "main" }}
+  <section class="hero">
+    <h1>{{ .Site.Title }}</h1>
+    {{ with .Site.Params.tagline }}<p class="lead">{{ . }}</p>{{ end }}
+  </section>
+  <section class="post-list">
+    {{ $posts := where .Site.RegularPages "Section" "posts" }}
+    {{ range first 12 $posts.ByDate.Reverse }}
+      <article class="post-card">
+        <h2><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
+        <p class="meta">
+          <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "Jan 2, 2006" }}</time>
+          {{ if ne .Lastmod .Date }}<span class="meta-sep">•</span><span>Updated {{ .Lastmod.Format "Jan 2, 2006" }}</span>{{ end }}
+        </p>
+        <p class="summary">{{ .Summary }}</p>
+        {{ with .Params.tags }}
+          <p class="tag-row">
+            {{ range . }}
+              <a class="tag" href="/tags/{{ . | urlize }}/">#{{ . }}</a>
+            {{ end }}
+          </p>
+        {{ end }}
+      </article>
+    {{ else }}
+      <p>No posts yet.</p>
+    {{ end }}
+  </section>
+{{ end }}

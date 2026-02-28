@@ -1,0 +1,8 @@
+baseURL = "https://example.com/"
+title = "sileret"
+languageCode = "en-us"
+enableRobotsTXT = true
+paginate = 10
+
+[taxonomies]
+tag = "tags"
