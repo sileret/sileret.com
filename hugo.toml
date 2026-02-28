@@ -2,7 +2,7 @@ baseURL = "https://example.com/"
 title = "sileret"
 languageCode = "en-us"
 enableRobotsTXT = true
-paginate = 10
+pagination.pagerSize = 10
 
 [taxonomies]
 tag = "tags"
