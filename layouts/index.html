@@ -1,18 +1,31 @@
 {{ define "main" }}
-  <section class="hero">
-    <h1>{{ .Site.Title }}</h1>
-    {{ with .Site.Params.tagline }}<p class="lead">{{ . }}</p>{{ end }}
-  </section>
   <section class="post-list">
     {{ $posts := where .Site.RegularPages "Section" "posts" }}
     {{ range first 12 $posts.ByDate.Reverse }}
+      {{ $page := . }}
+      {{ $thumb := $page.Resources.GetMatch "title-image*" }}
+      {{ if not $thumb }}{{ $thumb = $page.Resources.GetMatch "cover*" }}{{ end }}
+      {{ if not $thumb }}
+        {{ $images := $page.Resources.ByType "image" }}
+        {{ if gt (len $images) 0 }}{{ $thumb = index $images 0 }}{{ end }}
+      {{ end }}
       <article class="post-card">
+        {{ with $thumb }}
+          <a href="{{ $page.RelPermalink }}">
+            <img src="{{ .RelPermalink }}" alt="{{ $page.Title }}" loading="lazy" decoding="async" style="display:block;width:100%;height:auto;max-width:100%;border-radius:0.6rem;margin:0.3rem 0 0.9rem;">
+          </a>
+        {{ end }}
         <h2><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
         <p class="meta">
           <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "Jan 2, 2006" }}</time>
           {{ if ne .Lastmod .Date }}<span class="meta-sep">•</span><span>Updated {{ .Lastmod.Format "Jan 2, 2006" }}</span>{{ end }}
         </p>
-        <p class="summary">{{ .Summary }}</p>
+        {{ $summary := .Summary }}
+        {{ if gt (len (findRE "<img" $summary 1)) 0 }}
+          <div class="summary">{{ .Plain | truncate 280 }}</div>
+        {{ else }}
+          <div class="summary">{{ $summary }}</div>
+        {{ end }}
         {{ with .Params.tags }}
           <p class="tag-row">
             {{ range . }}

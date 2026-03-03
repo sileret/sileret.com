@@ -6,3 +6,8 @@ pagination.pagerSize = 10
 
 [taxonomies]
 tag = "tags"
+
+[params]
+heroTitle = ""
+tagline = ""
+contactEmail = "root@sileret.com"
