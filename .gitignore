@@ -4,3 +4,5 @@ public/
 resources/
 .env
 tools/notes-exporter/
+__pycache__/
+*.pyc

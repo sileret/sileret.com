@@ -4,6 +4,7 @@ import re
 import shutil
 import subprocess
 import sys
+import hashlib
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -17,6 +18,7 @@ SLUG_LINE_PREFIX = "slug:"
 CONTROL_TAGS = {"blog", "publish", "published"}
 PUBLISH_TAG = "publish"
 PUBLISHED_TAG = "published"
+BLOG_FOLDER = os.environ.get("NOTES_BLOG_FOLDER", "Blog")
 
 
 @dataclass
@@ -67,7 +69,15 @@ def clean_title(line: str) -> str:
 def parse_tags(line: str) -> list:
     tag_text = line.split(":", 1)[1] if ":" in line else ""
     tags = re.findall(r"#([A-Za-z0-9][A-Za-z0-9_-]*)", tag_text)
-    return [t.lower() for t in tags]
+    if tags:
+        return [t.lower() for t in tags]
+    # Apple Notes native tag chips appear as object replacement chars in plaintext.
+    placeholders = tag_text.count("\uFFFC")
+    if placeholders >= 2:
+        return ["blog", "publish"]
+    if placeholders == 1:
+        return ["blog"]
+    return []
 
 
 def parse_slug(line: str) -> str | None:
@@ -291,37 +301,85 @@ def write_post(note: Note, slug: str, existing: dict | None) -> tuple[Path, bool
     return index_path, changed
 
 
-def ensure_export():
-    exporter = shutil.which("exportnotes.zsh")
-    cmd_prefix = None
-    if exporter:
-        cmd_prefix = [exporter]
-    else:
-        local_exporter = ROOT / "tools" / "notes-exporter" / "exportnotes.zsh"
-        if local_exporter.exists():
-            cmd_prefix = ["/bin/zsh", str(local_exporter)]
-    if not cmd_prefix:
-        sys.stderr.write(
-            "exportnotes.zsh not found. Install notes-exporter or clone it into tools/notes-exporter.\n"
-        )
-        raise SystemExit(1)
-    EXPORT_ROOT.mkdir(parents=True, exist_ok=True)
-    env = os.environ.copy()
-    env["NOTES_EXPORT_TAG_FILTER"] = "#blog"
-    run(
-        cmd_prefix
-        + [
-            "--root-dir",
-            str(EXPORT_ROOT),
-            "--convert-markdown",
-            "true",
-            "--filename-format",
-            "&title-&id",
-            "--use-subdirs",
-            "false",
-        ],
-        env=env,
+def stable_note_id(raw_id: str) -> str:
+    match = re.search(r"([A-Za-z0-9]{6,})$", raw_id or "")
+    if match:
+        return match.group(1)
+    digest = hashlib.sha1((raw_id or "").encode("utf-8")).hexdigest()
+    return digest[:12]
+
+
+def export_matching_notes() -> int:
+    script = r"""
+on run argv
+  set targetFolder to item 1 of argv
+  set recordSep to character id 30
+  set fieldSep to character id 31
+  set rows to {}
+  set epochDate to date "Thursday, January 1, 1970 at 12:00:00 AM"
+  tell application "Notes"
+    repeat with acc in accounts
+      repeat with fold in folders of acc
+        if (name of fold as string) is targetFolder then
+          repeat with n in notes of fold
+            set noteText to plaintext of n
+            if noteText contains "Tags:" then
+              set noteEpoch to (modification date of n) - epochDate
+              set end of rows to ((id of n as string) & fieldSep & (name of n as string) & fieldSep & (noteEpoch as string) & fieldSep & noteText)
+            end if
+          end repeat
+        end if
+      end repeat
+    end repeat
+  end tell
+  set AppleScript's text item delimiters to recordSep
+  set outputText to rows as string
+  set AppleScript's text item delimiters to ""
+  return outputText
+end run
+"""
+    proc = subprocess.run(
+        ["osascript", "-", BLOG_FOLDER],
+        input=script,
+        capture_output=True,
+        text=True,
     )
+    if proc.returncode != 0:
+        sys.stderr.write(proc.stderr or proc.stdout)
+        raise SystemExit(proc.returncode)
+    output = (proc.stdout or "").strip()
+    if not output:
+        return 0
+
+    exported = 0
+    for row in output.split("\x1e"):
+        parts = row.split("\x1f", 3)
+        if len(parts) != 4:
+            continue
+        raw_id, title, epoch_raw, note_text = parts
+        note_id = stable_note_id(raw_id)
+        title = title.strip() or "Untitled"
+        note_text = note_text.replace("\r\n", "\n").replace("\r", "\n")
+        lines = note_text.splitlines()
+        if lines and clean_title(lines[0]) == clean_title(title):
+            note_text = "\n".join(lines[1:]).lstrip("\n")
+        filename = f"{slugify(title) or 'note'}-{note_id}.md"
+        md_path = EXPORT_ROOT / filename
+        md_path.write_text(f"{title}\n{note_text.rstrip()}\n", encoding="utf-8")
+        try:
+            epoch = float(epoch_raw.strip())
+            os.utime(md_path, (epoch, epoch))
+        except ValueError:
+            pass
+        exported += 1
+    return exported
+
+
+def ensure_export():
+    if EXPORT_ROOT.exists():
+        shutil.rmtree(EXPORT_ROOT)
+    EXPORT_ROOT.mkdir(parents=True, exist_ok=True)
+    export_matching_notes()
 
 
 def update_notes_to_published(titles: list[str]):
