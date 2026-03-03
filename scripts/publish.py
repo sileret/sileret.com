@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import os
 import re
 import shutil
@@ -32,6 +33,27 @@ class Note:
     mtime: datetime
     has_publish: bool
     has_published: bool
+    has_native_tag_chips: bool
+
+
+@dataclass
+class PublishPlanItem:
+    title: str
+    slug: str
+    note_id: str
+    source_path: Path
+    has_publish: bool
+    has_published: bool
+    is_existing: bool
+    rename_from_slug: str | None
+    tags_mode: str
+
+
+@dataclass
+class SkippedPlanItem:
+    title: str
+    source_path: Path
+    reason: str
 
 
 def run(cmd, cwd=None, check=True, env=None):
@@ -93,12 +115,14 @@ def parse_note_markdown(path: Path) -> Note | None:
     slug_idx = None
     tags = []
     slug_override = None
+    has_native_tag_chips = False
     for i in range(title_idx + 1, min(title_idx + 8, len(lines))):
         stripped = lines[i].strip()
         lower = stripped.lower()
         if lower.startswith(TAG_LINE_PREFIX):
             tag_idx = i
             tags = parse_tags(stripped)
+            has_native_tag_chips = "\ufffc" in stripped
         if lower.startswith(SLUG_LINE_PREFIX):
             slug_idx = i
             slug_override = parse_slug(stripped)
@@ -125,6 +149,7 @@ def parse_note_markdown(path: Path) -> Note | None:
         mtime=mtime,
         has_publish=has_publish,
         has_published=has_published,
+        has_native_tag_chips=has_native_tag_chips,
     )
 
 
@@ -428,7 +453,43 @@ def git(cmd):
     return run(["git"] + cmd, cwd=ROOT, check=False)
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Publish blog posts exported from Apple Notes.")
+    parser.add_argument(
+        "-n",
+        "--dry-run",
+        action="store_true",
+        help="Show which posts would be published without writing files, committing, pushing, or updating Apple Notes tags.",
+    )
+    return parser.parse_args()
+
+
+def describe_plan(plan_items: list[PublishPlanItem], skipped_items: list[SkippedPlanItem]):
+    if not plan_items and not skipped_items:
+        print("No matching notes found with #blog and #publish/#published.")
+        return
+    print(f"Dry run: would process {len(plan_items)} posts, skipped: {len(skipped_items)}")
+    for item in plan_items:
+        status = "update" if item.is_existing else "new"
+        trigger = "#publish" if item.has_publish else "#published"
+        print(f"- {item.title} [{status}]")
+        print(f"  slug: {item.slug}")
+        if item.rename_from_slug:
+            print(f"  rename: {item.rename_from_slug} -> {item.slug}")
+        print(f"  trigger: {trigger}")
+        if item.tags_mode != "explicit":
+            print(f"  tags: {item.tags_mode}")
+        print(f"  source: {item.source_path}")
+    if skipped_items:
+        print("Skipped:")
+        for item in skipped_items:
+            print(f"- {item.title}")
+            print(f"  reason: {item.reason}")
+            print(f"  source: {item.source_path}")
+
+
 def main():
+    args = parse_args()
     CONTENT_DIR.mkdir(parents=True, exist_ok=True)
     ensure_export()
 
@@ -441,20 +502,52 @@ def main():
     updated_titles = []
     written = 0
     skipped = 0
+    plan_items = []
+    skipped_items = []
 
     for md_path in markdown_files:
         note = parse_note_markdown(md_path)
         if not note:
             continue
-        if "blog" not in note.tags:
-            continue
-        if not (note.has_publish or note.has_published):
-            continue
         existing_info = existing.get(note.note_id)
+        is_blog = "blog" in note.tags
+        has_publish = note.has_publish
+        has_published = note.has_published
+        tags_mode = "explicit"
+
+        if not is_blog:
+            if args.dry_run and note.has_native_tag_chips and not note.tags:
+                skipped_items.append(
+                    SkippedPlanItem(
+                        title=note.title,
+                        source_path=note.source_path,
+                        reason="native Notes tag chips detected without literal #blog text",
+                    )
+                )
+            continue
+        if not (has_publish or has_published):
+            if args.dry_run and note.has_native_tag_chips and not note.tags:
+                skipped_items.append(
+                    SkippedPlanItem(
+                        title=note.title,
+                        source_path=note.source_path,
+                        reason="native Notes tag chips detected; add literal #publish or #published text",
+                    )
+                )
+            continue
+
         existing_lastmod = parse_dt(existing_info.get("lastmod")) if existing_info else None
-        if note.has_published and not note.has_publish and existing_lastmod:
+        if has_published and not has_publish and existing_lastmod:
             if note.mtime <= existing_lastmod:
                 skipped += 1
+                if args.dry_run:
+                    skipped_items.append(
+                        SkippedPlanItem(
+                            title=note.title,
+                            source_path=note.source_path,
+                            reason="already published and unchanged since existing lastmod",
+                        )
+                    )
                 continue
 
         slug = None
@@ -467,19 +560,46 @@ def main():
         if not slug:
             slug = note.note_id
         slug = ensure_unique_slug(slug, note.note_id)
-
+        rename_from_slug = None
         if existing_info and note.slug_override and slug != existing_info.get("slug"):
-            old_dir = CONTENT_DIR / existing_info.get("slug")
+            rename_from_slug = existing_info.get("slug")
+
+        plan_items.append(
+            PublishPlanItem(
+                title=note.title,
+                slug=slug,
+                note_id=note.note_id,
+                source_path=note.source_path,
+                has_publish=has_publish,
+                has_published=has_published,
+                is_existing=bool(existing_info),
+                rename_from_slug=rename_from_slug,
+                tags_mode=tags_mode,
+            )
+        )
+
+        if args.dry_run:
+            continue
+
+        if rename_from_slug:
+            old_dir = CONTENT_DIR / rename_from_slug
             new_dir = CONTENT_DIR / slug
             if old_dir.exists() and not new_dir.exists():
                 old_dir.rename(new_dir)
 
         _, changed = write_post(note, slug, existing_info)
         written += 1
-        if note.has_publish:
+        if has_publish:
             updated_titles.append(note.title)
 
+    if args.dry_run:
+        describe_plan(plan_items, skipped_items)
+        return
+
     if written == 0:
+        if skipped:
+            print(f"No posts required publishing. skipped: {skipped}")
+            return
         print("No matching notes found with #blog and #publish/#published.")
         return
 
