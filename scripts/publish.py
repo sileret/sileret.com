@@ -69,15 +69,9 @@ def clean_title(line: str) -> str:
 def parse_tags(line: str) -> list:
     tag_text = line.split(":", 1)[1] if ":" in line else ""
     tags = re.findall(r"#([A-Za-z0-9][A-Za-z0-9_-]*)", tag_text)
-    if tags:
-        return [t.lower() for t in tags]
-    # Apple Notes native tag chips appear as object replacement chars in plaintext.
-    placeholders = tag_text.count("\uFFFC")
-    if placeholders >= 2:
-        return ["blog", "publish"]
-    if placeholders == 1:
-        return ["blog"]
-    return []
+    # Only explicit text hashtags should drive publish behavior.
+    # Native Apple Notes tag chips are not considered reliable control tags.
+    return [t.lower() for t in tags]
 
 
 def parse_slug(line: str) -> str | None:
