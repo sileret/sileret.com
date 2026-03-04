@@ -16,6 +16,7 @@ EXPORT_ROOT = Path(os.environ.get("NOTES_EXPORT_ROOT_DIR", ROOT / ".notes-export
 CONTENT_DIR = ROOT / "content" / "posts"
 TAG_LINE_PREFIX = "tags:"
 CONTROL_LINE_PREFIX = "control:"
+STATUS_LINE_PREFIX = "status:"
 SLUG_LINE_PREFIX = "slug:"
 NOTE_ID_LINE_PREFIX = "note id:"
 NOTE_ID_ALT_PREFIX = "note_id:"
@@ -39,6 +40,7 @@ class Note:
     has_publish: bool
     has_published: bool
     has_native_tag_chips: bool
+    status: str | None
 
 
 @dataclass
@@ -120,6 +122,18 @@ def parse_slug(line: str) -> str | None:
     return slug or None
 
 
+def parse_status(line: str) -> str | None:
+    if ":" not in line:
+        return None
+    raw = line.split(":", 1)[1].strip().lower().lstrip("#")
+    if not raw:
+        return None
+    token = re.split(r"[,\s]+", raw, maxsplit=1)[0]
+    if re.fullmatch(r"[a-z0-9][a-z0-9_-]*", token):
+        return token
+    return None
+
+
 def parse_note_markdown(path: Path) -> Note | None:
     text = path.read_text(encoding="utf-8")
     lines = text.splitlines()
@@ -132,12 +146,14 @@ def parse_note_markdown(path: Path) -> Note | None:
     slug_idx = None
     note_id_idx = None
     modified_idx = None
+    status_idx = None
     tags = []
     slug_override = None
     note_id_override = None
     modified_override = None
+    status_value = None
     has_native_tag_chips = False
-    for i in range(title_idx + 1, min(title_idx + 8, len(lines))):
+    for i in range(title_idx + 1, min(title_idx + 12, len(lines))):
         stripped = lines[i].strip()
         lower = stripped.lower()
         if lower.startswith(TAG_LINE_PREFIX):
@@ -147,6 +163,9 @@ def parse_note_markdown(path: Path) -> Note | None:
         if lower.startswith(CONTROL_LINE_PREFIX):
             tag_indices.append(i)
             tags.extend(parse_tags(stripped))
+        if lower.startswith(STATUS_LINE_PREFIX):
+            status_idx = i
+            status_value = parse_status(stripped)
         if lower.startswith(SLUG_LINE_PREFIX):
             slug_idx = i
             slug_override = parse_slug(stripped)
@@ -167,14 +186,16 @@ def parse_note_markdown(path: Path) -> Note | None:
         skip_indices.add(note_id_idx)
     if modified_idx is not None:
         skip_indices.add(modified_idx)
+    if status_idx is not None:
+        skip_indices.add(status_idx)
     body_lines = [line for i, line in enumerate(lines) if i not in skip_indices]
     while body_lines and body_lines[0].strip() == "":
         body_lines.pop(0)
     body = "\n".join(body_lines).strip() + "\n" if body_lines else ""
     note_id = note_id_override or parse_note_id(path)
     mtime = modified_override or datetime.fromtimestamp(path.stat().st_mtime).astimezone()
-    has_publish = PUBLISH_TAG in tags
-    has_published = PUBLISHED_TAG in tags
+    has_publish = status_value == PUBLISH_TAG
+    has_published = status_value == PUBLISHED_TAG
     return Note(
         note_id=note_id,
         title=title_line or path.stem,
@@ -186,6 +207,7 @@ def parse_note_markdown(path: Path) -> Note | None:
         has_publish=has_publish,
         has_published=has_published,
         has_native_tag_chips=has_native_tag_chips,
+        status=status_value,
     )
 
 
@@ -451,8 +473,8 @@ on run argv
           set noteName to name of n
           if targetTitles contains noteName then
             set noteBody to body of n
-            if noteBody contains "#publish" then
-              set body of n to my replace_text(noteBody, "#publish", "#published")
+            if noteBody contains "Status: publish" then
+              set body of n to my replace_text(noteBody, "Status: publish", "Status: published")
               set updatedCount to updatedCount + 1
             end if
           end if
@@ -512,12 +534,12 @@ def parse_args() -> argparse.Namespace:
 
 def describe_plan(plan_items: list[PublishPlanItem], skipped_items: list[SkippedPlanItem]):
     if not plan_items and not skipped_items:
-        print("No matching notes found with #blog and #publish/#published.")
+        print("No matching notes found with Status: publish/published.")
         return
     print(f"Dry run: would process {len(plan_items)} posts, skipped: {len(skipped_items)}")
     for item in plan_items:
         status = "update" if item.is_existing else "new"
-        trigger = "#publish" if item.has_publish else "#published"
+        trigger = "publish" if item.has_publish else "published"
         print(f"- {item.title} [{status}]")
         print(f"  slug: {item.slug}")
         if item.rename_from_slug:
@@ -561,7 +583,8 @@ def main():
         if not note:
             continue
         existing_info = existing.get(note.note_id)
-        is_blog = "blog" in note.tags
+        has_status_control = note.status in {PUBLISH_TAG, PUBLISHED_TAG}
+        is_blog = ("blog" in note.tags) or has_status_control
         has_publish = note.has_publish
         has_published = note.has_published
         tags_mode = "explicit"
@@ -572,7 +595,7 @@ def main():
                     SkippedPlanItem(
                         title=note.title,
                         source_path=note.source_path,
-                        reason="native Notes tag chips detected without explicit text control tags",
+                        reason="native Notes tag chips detected without explicit text controls (add Status: publish)",
                     )
                 )
             continue
@@ -582,7 +605,7 @@ def main():
                     SkippedPlanItem(
                         title=note.title,
                         source_path=note.source_path,
-                        reason="native Notes tag chips detected; add explicit text control tags (for example: Tags: blog publish)",
+                        reason="native Notes tag chips detected; add Status: publish",
                     )
                 )
             continue
@@ -651,7 +674,7 @@ def main():
         if skipped:
             print(f"No posts required publishing. skipped: {skipped}")
             return
-        print("No matching notes found with #blog and #publish/#published.")
+        print("No matching notes found with Status: publish/published.")
         return
 
     git(["add", str(CONTENT_DIR)])
