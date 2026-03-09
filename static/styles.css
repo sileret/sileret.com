@@ -383,7 +383,7 @@ body {
 
 @media (max-width: 720px) {
   html {
-    font-size: 17px;
+    font-size: var(--reading-size);
   }
 
   .site-header {
