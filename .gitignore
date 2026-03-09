@@ -6,3 +6,4 @@ resources/
 tools/notes-exporter/
 __pycache__/
 *.pyc
+.hugo_build.lock
