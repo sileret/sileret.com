@@ -14,8 +14,9 @@
       {{ end }}
       <article class="post-card">
         {{ with $thumb }}
+          {{ $listThumb := .Fill "960x270 Top" }}
           <a href="{{ $page.RelPermalink }}">
-            <img src="{{ .RelPermalink }}" alt="{{ $page.Title }}" loading="lazy" decoding="async" style="display:block;width:100%;height:auto;max-width:100%;border-radius:0.6rem;margin:0.3rem 0 0.9rem;">
+            <img src="{{ $listThumb.RelPermalink }}" alt="{{ $page.Title }}" loading="lazy" decoding="async" width="{{ $listThumb.Width }}" height="{{ $listThumb.Height }}" style="display:block;width:100%;height:auto;max-width:100%;border-radius:0.6rem;margin:0.3rem 0 0.9rem;">
           </a>
         {{ end }}
         <h2><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>

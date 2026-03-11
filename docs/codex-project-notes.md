@@ -9,6 +9,7 @@ This file is for future Codex sessions working in this repository. It records th
 - Main site stylesheet: `static/styles.css`
 - Content model: page bundles under `content/posts/<slug>/index.md`
 - Publish automation: `scripts/publish.py`
+- Main layout width in `static/styles.css` is currently `700px` via `.wrap`
 
 Current config in `hugo.toml` is minimal:
 
@@ -46,11 +47,14 @@ Current config in `hugo.toml` is minimal:
   1. resource matching `title-image*`
   2. resource matching `cover*`
   3. first image resource in the bundle
+- Home and list pages do not render the original asset directly anymore; they generate a listing thumbnail with Hugo image processing using `.Fill "960x270 Top"`
+- The listing crop is intentionally shallow and top-anchored so feed images take less vertical space and are cut off toward the bottom
 - Card summary uses `.Summary` unless the summary contains an image, in which case it falls back to truncated plain text.
 
 ### Single posts
 
 - Post layout shows title, `date`, optional `lastmod`, tags, and full content.
+- For pages in section `posts`, the single layout renders `.TableOfContents` above the article body when Hugo generates a non-empty TOC.
 - Markdown images are rendered through `layouts/_markup/render-image.html`.
 - Post images are wrapped in links to their original asset.
 - If a Markdown image has a title, the render hook outputs a `<figure>` with a visible `<figcaption>`.
@@ -171,6 +175,7 @@ These are the most important things to re-check before future edits:
 2. `docs/shortcut-publish-workflow.md` mentions `Control: blog publish` and `Tags:`-style exports, which is only part of the current picture.
 3. `baseURL` in `hugo.toml` is still `https://example.com/`; if production behavior ever matters, verify whether deployment overrides it externally.
 4. `pagination.pagerSize` is configured but unused because the home page template manually takes the first 12 posts.
+5. Listing thumbnails now rely on Hugo image processing. That works for raster resources like PNG/JPEG/WebP, but a future SVG-only thumbnail would need a template fallback instead of `.Fill`.
 
 ## Safe working rules for future Codex sessions
 
