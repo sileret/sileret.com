@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 import argparse
+import base64
+import binascii
+import html
 import os
 import re
 import shutil
@@ -8,6 +11,7 @@ import sys
 import hashlib
 from dataclasses import dataclass
 from datetime import datetime
+from html.parser import HTMLParser
 from pathlib import Path
 import unicodedata
 
@@ -26,6 +30,15 @@ CONTROL_TAGS = {"blog", "publish", "published"}
 PUBLISH_TAG = "publish"
 PUBLISHED_TAG = "published"
 BLOG_FOLDER = os.environ.get("NOTES_BLOG_FOLDER", "Blog")
+ATTACHMENT_CHAR = "\ufffc"
+IMAGE_EXTENSIONS = {
+    "image/gif": ".gif",
+    "image/heic": ".heic",
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/tiff": ".tif",
+    "image/webp": ".webp",
+}
 
 
 @dataclass
@@ -342,6 +355,85 @@ def rewrite_links(body: str, md_dir: Path, bundle_dir: Path) -> tuple[str, list]
     return updated, attachments
 
 
+class NotesHTMLImageExtractor(HTMLParser):
+    def __init__(self, asset_dir: Path):
+        super().__init__(convert_charrefs=True)
+        self.asset_dir = asset_dir
+        self.refs = []
+        self.image_index = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]):
+        if tag.lower() != "img":
+            return
+        attr_map = dict(attrs)
+        src = html.unescape(attr_map.get("src") or "").strip()
+        if not src.startswith("data:image/"):
+            return
+        match = re.match(r"data:(image/[a-z0-9.+-]+);base64,(.+)$", src, re.IGNORECASE)
+        if not match:
+            return
+        mime = match.group(1).lower()
+        payload = re.sub(r"\s+", "", match.group(2))
+        extension = IMAGE_EXTENSIONS.get(mime, ".bin")
+        self.image_index += 1
+        filename = f"image-{self.image_index}{extension}"
+        try:
+            data = base64.b64decode(payload, validate=True)
+        except (binascii.Error, ValueError):
+            self.image_index -= 1
+            return
+        self.asset_dir.mkdir(parents=True, exist_ok=True)
+        (self.asset_dir / filename).write_bytes(data)
+        self.refs.append(f"{self.asset_dir.name}/{filename}")
+
+
+def trim_export_body(text: str) -> str:
+    lines = text.splitlines()
+    while lines and (lines[0].strip() == "" or lines[0].strip() == ATTACHMENT_CHAR):
+        lines.pop(0)
+    while lines and lines[-1].strip() == "":
+        lines.pop()
+    return "\n".join(lines)
+
+
+def extract_embedded_image_refs(note_html: str, asset_dir: Path) -> list[str]:
+    extractor = NotesHTMLImageExtractor(asset_dir)
+    extractor.feed(note_html or "")
+    extractor.close()
+    return extractor.refs
+
+
+def inject_embedded_images(note_text: str, note_html: str, asset_dir: Path) -> str:
+    image_refs = extract_embedded_image_refs(note_html, asset_dir)
+    working_text = trim_export_body(note_text)
+    if not image_refs:
+        return working_text
+
+    replacement_index = 0
+    pieces = []
+    for char in working_text:
+        if char != ATTACHMENT_CHAR:
+            pieces.append(char)
+            continue
+        if replacement_index < len(image_refs):
+            ref = image_refs[replacement_index]
+            replacement_index += 1
+            pieces.append(f"![Image {replacement_index}]({ref})")
+        else:
+            pieces.append("")
+
+    rendered = trim_export_body("".join(pieces))
+    if replacement_index >= len(image_refs):
+        return rendered
+
+    trailing = "\n\n".join(
+        f"![Image {idx}]({ref})" for idx, ref in enumerate(image_refs[replacement_index:], start=replacement_index + 1)
+    )
+    if not rendered:
+        return trailing
+    return f"{rendered}\n\n{trailing}"
+
+
 def write_post(note: Note, slug: str, existing: dict | None) -> tuple[Path, bool]:
     bundle_dir = CONTENT_DIR / slug
     bundle_dir.mkdir(parents=True, exist_ok=True)
@@ -402,7 +494,8 @@ on run argv
             set noteText to plaintext of n
             if noteText contains "Tags:" then
               set noteEpoch to (modification date of n) - epochDate
-              set end of rows to ((id of n as string) & fieldSep & (name of n as string) & fieldSep & (noteEpoch as string) & fieldSep & noteText)
+              set noteHtml to body of n
+              set end of rows to ((id of n as string) & fieldSep & (name of n as string) & fieldSep & (noteEpoch as string) & fieldSep & noteText & fieldSep & noteHtml)
             end if
           end repeat
         end if
@@ -430,19 +523,22 @@ end run
 
     exported = 0
     for row in output.split("\x1e"):
-        parts = row.split("\x1f", 3)
-        if len(parts) != 4:
+        parts = row.split("\x1f", 4)
+        if len(parts) != 5:
             continue
-        raw_id, title, epoch_raw, note_text = parts
+        raw_id, title, epoch_raw, note_text, note_html = parts
         note_id = stable_note_id(raw_id)
         title = title.strip() or "Untitled"
         note_text = note_text.replace("\r\n", "\n").replace("\r", "\n")
+        note_html = note_html.replace("\r\n", "\n").replace("\r", "\n")
         lines = note_text.splitlines()
         if lines and clean_title(lines[0]) == clean_title(title):
             note_text = "\n".join(lines[1:]).lstrip("\n")
         filename = f"{slugify(title) or 'note'}-{note_id}.md"
         md_path = EXPORT_ROOT / filename
-        md_path.write_text(f"{title}\n{note_text.rstrip()}\n", encoding="utf-8")
+        asset_dir = EXPORT_ROOT / f"{md_path.stem}.assets"
+        rendered_text = inject_embedded_images(note_text, note_html, asset_dir)
+        md_path.write_text(f"{title}\n{rendered_text.rstrip()}\n", encoding="utf-8")
         try:
             epoch = float(epoch_raw.strip())
             os.utime(md_path, (epoch, epoch))
