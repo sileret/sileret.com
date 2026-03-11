@@ -105,7 +105,7 @@ body {
 }
 
 .wrap {
-  max-width: 610px;
+  max-width: 700px;
   margin: 0 auto;
   padding: 2rem 1.25rem 4rem;
 }
@@ -292,6 +292,33 @@ body {
 
 .post-header {
   margin-bottom: 1.1rem;
+}
+
+.post-toc {
+  margin: 0 0 1.15rem;
+}
+
+.post-toc h2 {
+  margin: 0;
+  font-size: var(--reading-size);
+}
+
+.post-toc ul {
+  margin-top: 0;
+  list-style: none;
+  padding-left: 1.45rem;
+}
+
+.post-toc > nav > ul {
+  padding-left: 0;
+}
+
+.post-toc a {
+  color: var(--link);
+}
+
+.post-toc a:hover {
+  color: var(--link-hover);
 }
 
 .content {
