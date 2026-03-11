@@ -1,7 +1,10 @@
 ---
 title: "Renaissance Technologies"
 date: 2020-09-15T14:38:30+01:00
-lastmod: 2026-03-03T14:38:30+01:00
+lastmod: 2026-03-11T09:21:30+01:00
+tags:
+  - trading
+  - finance
 ---
 
 ![Renaissance Technologies](rentec-aerial-view.png)
