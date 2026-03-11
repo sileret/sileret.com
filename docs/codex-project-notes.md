@@ -51,7 +51,9 @@ Current config in `hugo.toml` is minimal:
 ### Single posts
 
 - Post layout shows title, `date`, optional `lastmod`, tags, and full content.
-- There is no custom shortcode or special post rendering logic in this repo at the moment.
+- Markdown images are rendered through `layouts/_markup/render-image.html`.
+- Post images are wrapped in links to their original asset.
+- If a Markdown image has a title, the render hook outputs a `<figure>` with a visible `<figcaption>`.
 
 ### About page
 
@@ -68,6 +70,7 @@ Current config in `hugo.toml` is minimal:
 
 - Posts are leaf bundles: `content/posts/<slug>/index.md`
 - Images can live beside `index.md` and be referenced relatively
+- Apple Notes exports can attach image metadata by placing `Alt:` and `Caption:` lines immediately below an embedded image; the publish script converts those into Markdown image alt text and title/caption
 - Example already in repo: `content/posts/renaissance-technologies/rentec-aerial-view.png`
 
 ### Front matter used by generated posts
@@ -138,6 +141,7 @@ For each qualifying note, the script:
 - preserves the old slug unless a new explicit slug override is supplied
 - renames the bundle directory when an existing post gets a new slug override
 - converts embedded Apple Notes images into local Markdown image links during export
+- when an embedded image is immediately followed by `Alt:` and/or `Caption:` lines in Apple Notes plaintext, converts those into Markdown image alt text and title
 - rewrites relative Markdown links to local files into `attachments/<filename>`
 - recreates the `attachments/` folder on each write
 - copies linked local files into the post bundle

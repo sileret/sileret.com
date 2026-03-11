@@ -26,6 +26,8 @@ NOTE_ID_LINE_PREFIX = "note id:"
 NOTE_ID_ALT_PREFIX = "note_id:"
 MODIFIED_LINE_PREFIX = "modified:"
 LASTMOD_LINE_PREFIX = "lastmod:"
+ALT_LINE_PREFIX = "alt:"
+CAPTION_LINE_PREFIX = "caption:"
 CONTROL_TAGS = {"blog", "publish", "published"}
 PUBLISH_TAG = "publish"
 PUBLISHED_TAG = "published"
@@ -414,31 +416,93 @@ def extract_embedded_image_refs(note_html: str, asset_dir: Path) -> list[str]:
     return extractor.refs
 
 
+def parse_prefixed_value(line: str) -> str | None:
+    if ":" not in line:
+        return None
+    value = line.split(":", 1)[1].strip()
+    return value or None
+
+
+def escape_markdown_image_alt(text: str) -> str:
+    return text.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
+
+
+def escape_markdown_image_title(text: str) -> str:
+    return text.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def render_markdown_image(ref: str, index: int, alt_text: str | None = None, caption: str | None = None) -> str:
+    alt = escape_markdown_image_alt(alt_text or f"Image {index}")
+    if not caption:
+        return f"![{alt}]({ref})"
+    title = escape_markdown_image_title(caption)
+    return f'![{alt}]({ref} "{title}")'
+
+
+def parse_image_metadata(lines: list[str], start_index: int) -> tuple[str | None, str | None, int]:
+    alt_text = None
+    caption = None
+    index = start_index
+    while index < len(lines):
+        stripped = lines[index].strip()
+        lower = stripped.lower()
+        if lower.startswith(ALT_LINE_PREFIX):
+            alt_text = parse_prefixed_value(stripped)
+            index += 1
+            continue
+        if lower.startswith(CAPTION_LINE_PREFIX):
+            caption = parse_prefixed_value(stripped)
+            index += 1
+            continue
+        break
+    return alt_text, caption, index
+
+
 def inject_embedded_images(note_text: str, note_html: str, asset_dir: Path) -> str:
     image_refs = extract_embedded_image_refs(note_html, asset_dir)
     working_text = trim_export_body(note_text)
     if not image_refs:
         return working_text
 
+    lines = working_text.splitlines()
     replacement_index = 0
-    pieces = []
-    for char in working_text:
-        if char != ATTACHMENT_CHAR:
-            pieces.append(char)
+    rendered_lines = []
+    line_index = 0
+    while line_index < len(lines):
+        line = lines[line_index]
+        stripped = line.strip()
+        if ATTACHMENT_CHAR not in line:
+            rendered_lines.append(line)
+            line_index += 1
             continue
-        if replacement_index < len(image_refs):
-            ref = image_refs[replacement_index]
-            replacement_index += 1
-            pieces.append(f"![Image {replacement_index}]({ref})")
-        else:
-            pieces.append("")
 
-    rendered = trim_export_body("".join(pieces))
+        if stripped and set(stripped) == {ATTACHMENT_CHAR} and len(stripped) == 1:
+            alt_text, caption, next_index = parse_image_metadata(lines, line_index + 1)
+            if replacement_index < len(image_refs):
+                replacement_index += 1
+                ref = image_refs[replacement_index - 1]
+                rendered_lines.append(render_markdown_image(ref, replacement_index, alt_text, caption))
+            line_index = next_index
+            continue
+
+        pieces = []
+        for char in line:
+            if char != ATTACHMENT_CHAR:
+                pieces.append(char)
+                continue
+            if replacement_index < len(image_refs):
+                replacement_index += 1
+                ref = image_refs[replacement_index - 1]
+                pieces.append(render_markdown_image(ref, replacement_index))
+        rendered_lines.append("".join(pieces))
+        line_index += 1
+
+    rendered = trim_export_body("\n".join(rendered_lines))
     if replacement_index >= len(image_refs):
         return rendered
 
     trailing = "\n\n".join(
-        f"![Image {idx}]({ref})" for idx, ref in enumerate(image_refs[replacement_index:], start=replacement_index + 1)
+        render_markdown_image(ref, idx) for idx, ref in enumerate(image_refs[replacement_index:], start=replacement_index + 1)
     )
     if not rendered:
         return trailing

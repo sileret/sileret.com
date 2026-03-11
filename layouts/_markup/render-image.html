@@ -3,12 +3,26 @@
 {{- with .Page.Resources.GetMatch $destination -}}
   {{- $src = .RelPermalink -}}
 {{- end -}}
+{{- if .Title -}}
+<figure>
+  <a href="{{ $src | safeURL }}">
+    <img
+      src="{{ $src | safeURL }}"
+      alt="{{ .PlainText }}"
+      loading="lazy"
+      decoding="async"
+      title="{{ .Title }}"
+    >
+  </a>
+  <figcaption>{{ .Title }}</figcaption>
+</figure>
+{{- else -}}
 <a href="{{ $src | safeURL }}">
   <img
     src="{{ $src | safeURL }}"
     alt="{{ .PlainText }}"
     loading="lazy"
     decoding="async"
-    {{- with .Title }} title="{{ . }}"{{ end -}}
   >
 </a>
+{{- end -}}
