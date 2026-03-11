@@ -101,6 +101,7 @@ Default mode:
 
 - Recreates `.notes-export/`
 - Uses AppleScript to export notes from Apple Notes folder `Blog` unless overridden by `NOTES_BLOG_FOLDER`
+- Exports every note in that folder, not just notes containing a `Tags:` line
 - Reads both `plaintext` and HTML `body` from Apple Notes during export
 - Extracts embedded Notes images from HTML `data:image/...` sources into per-note export asset folders like `<note>.assets/`
 - Rewrites inline Notes images into Markdown image links pointing at those exported asset files
@@ -121,22 +122,13 @@ Local preview mode:
 
 After export, a note is considered publishable when:
 
-- it is treated as a blog note, which currently means either:
-  - it has a `blog` tag parsed from `Tags:` or `Control:`, or
-  - it has `Status: publish` or `Status: published`
-- and its status is `publish` or `published`
+- it has `Status: publish` or `Status: published`
 
 Important detail:
 
 - The parser understands `Tags:`, `Control:`, `Status:`, `Slug:`, `Note ID:`, `note_id:`, `Modified:`, and `Lastmod:`.
 - Explicit hashtag tokens on the `Tags:` or `Control:` line are preferred when present.
 - Control tags `blog`, `publish`, and `published` are stripped before writing Hugo `tags` front matter.
-
-### Important export caveat
-
-The built-in AppleScript export currently only exports Notes whose plaintext contains `Tags:` somewhere in the note body.
-
-That means a note using only `Status: publish` without any `Tags:` line will not be exported in default Apple Notes mode, even though the parser itself would accept it later. This mismatch matters.
 
 ### Post writing behavior
 
@@ -154,13 +146,14 @@ For each qualifying note, the script:
 
 - If note status is `published` and the exported note `mtime` is not newer than the post `lastmod`, the script skips rewriting that post.
 - If note status is `publish`, the script writes the post and later attempts to update the Apple Note body from `Status: publish` to `Status: published` in default export mode.
+- If an exported note maps to an existing generated post and no longer has `Status: publish` or `Status: published`, the script removes that post bundle.
 
 ### Git behavior
 
-When at least one post is written, the script:
+When at least one post is written or removed, the script:
 
-- stages `content/posts`
-- commits with message `Publish <n> posts` only if the staged diff is non-empty
+- stages `content/posts`, including deletions
+- commits only if the staged diff is non-empty
 - pushes
 - aborts Notes status updates if `git push` fails
 
@@ -170,11 +163,10 @@ The script does not stage templates, config, docs, or CSS.
 
 These are the most important things to re-check before future edits:
 
-1. `AGENTS.md` still describes publish selection in terms of `#blog` plus `#publish` or `#published`, but the live script now primarily uses `Status: publish` / `Status: published` and strips control tags from output.
-2. The AppleScript exporter still filters on presence of `Tags:` text, which is narrower than the parser's supported control lines.
-3. `docs/shortcut-publish-workflow.md` mentions `Control: blog publish` and `Tags:`-style exports, which is only part of the current picture.
-4. `baseURL` in `hugo.toml` is still `https://example.com/`; if production behavior ever matters, verify whether deployment overrides it externally.
-5. `pagination.pagerSize` is configured but unused because the home page template manually takes the first 12 posts.
+1. `AGENTS.md` still describes publish selection in terms of `#blog` plus `#publish` or `#published`, but the live script now requires `Status: publish` / `Status: published`.
+2. `docs/shortcut-publish-workflow.md` mentions `Control: blog publish` and `Tags:`-style exports, which is only part of the current picture.
+3. `baseURL` in `hugo.toml` is still `https://example.com/`; if production behavior ever matters, verify whether deployment overrides it externally.
+4. `pagination.pagerSize` is configured but unused because the home page template manually takes the first 12 posts.
 
 ## Safe working rules for future Codex sessions
 

@@ -70,6 +70,15 @@ class PublishPlanItem:
 
 
 @dataclass
+class RemovePlanItem:
+    title: str
+    slug: str
+    note_id: str
+    source_path: Path
+    reason: str
+
+
+@dataclass
 class SkippedPlanItem:
     title: str
     source_path: Path
@@ -280,8 +289,10 @@ def load_existing_posts() -> dict:
     return mapping
 
 
-def ensure_unique_slug(slug: str, note_id: str) -> str:
+def ensure_unique_slug(slug: str, note_id: str, pending_removed_slugs: set[str] | None = None) -> str:
     index_path = CONTENT_DIR / slug / "index.md"
+    if pending_removed_slugs and slug in pending_removed_slugs:
+        return slug
     if not index_path.exists():
         return slug
     fm, _ = parse_front_matter(index_path.read_text(encoding="utf-8"))
@@ -470,6 +481,14 @@ def write_post(note: Note, slug: str, existing: dict | None) -> tuple[Path, bool
     return index_path, changed
 
 
+def remove_post(slug: str) -> bool:
+    bundle_dir = CONTENT_DIR / slug
+    if not bundle_dir.exists():
+        return False
+    shutil.rmtree(bundle_dir)
+    return True
+
+
 def stable_note_id(raw_id: str) -> str:
     match = re.search(r"([A-Za-z0-9]{6,})$", raw_id or "")
     if match:
@@ -492,11 +511,9 @@ on run argv
         if (name of fold as string) is targetFolder then
           repeat with n in notes of fold
             set noteText to plaintext of n
-            if noteText contains "Tags:" then
-              set noteEpoch to (modification date of n) - epochDate
-              set noteHtml to body of n
-              set end of rows to ((id of n as string) & fieldSep & (name of n as string) & fieldSep & (noteEpoch as string) & fieldSep & noteText & fieldSep & noteHtml)
-            end if
+            set noteEpoch to (modification date of n) - epochDate
+            set noteHtml to body of n
+            set end of rows to ((id of n as string) & fieldSep & (name of n as string) & fieldSep & (noteEpoch as string) & fieldSep & noteText & fieldSep & noteHtml)
           end repeat
         end if
       end repeat
@@ -613,7 +630,7 @@ def parse_args() -> argparse.Namespace:
         "-n",
         "--dry-run",
         action="store_true",
-        help="Show which posts would be published without writing files, committing, pushing, or updating Apple Notes tags.",
+        help="Show which posts would be published or removed without writing files, committing, pushing, or updating Apple Notes status lines.",
     )
     parser.add_argument(
         "--skip-export",
@@ -623,7 +640,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--skip-notes-update",
         action="store_true",
-        help="Do not update Apple Notes bodies from #publish to #published after publishing.",
+        help="Do not update Apple Notes bodies from Status: publish to Status: published after publishing.",
     )
     parser.add_argument(
         "--local-only",
@@ -633,11 +650,16 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def describe_plan(plan_items: list[PublishPlanItem], skipped_items: list[SkippedPlanItem]):
-    if not plan_items and not skipped_items:
-        print("No matching notes found with Status: publish/published.")
+def describe_plan(
+    plan_items: list[PublishPlanItem],
+    removal_items: list[RemovePlanItem],
+    skipped_items: list[SkippedPlanItem],
+):
+    if not plan_items and not removal_items and not skipped_items:
+        print("No notes required publishing or removal.")
         return
-    print(f"Dry run: would process {len(plan_items)} posts, skipped: {len(skipped_items)}")
+    process_count = len(plan_items) + len(removal_items)
+    print(f"Dry run: would process {process_count} posts, skipped: {len(skipped_items)}")
     for item in plan_items:
         status = "update" if item.is_existing else "new"
         trigger = "publish" if item.has_publish else "published"
@@ -649,12 +671,30 @@ def describe_plan(plan_items: list[PublishPlanItem], skipped_items: list[Skipped
         if item.tags_mode != "explicit":
             print(f"  tags: {item.tags_mode}")
         print(f"  source: {item.source_path}")
+    for item in removal_items:
+        print(f"- {item.title} [remove]")
+        print(f"  slug: {item.slug}")
+        print(f"  reason: {item.reason}")
+        print(f"  source: {item.source_path}")
     if skipped_items:
         print("Skipped:")
         for item in skipped_items:
             print(f"- {item.title}")
             print(f"  reason: {item.reason}")
             print(f"  source: {item.source_path}")
+
+
+def build_commit_message(written: int, removed: int) -> str:
+    parts = []
+    if written:
+        noun = "post" if written == 1 else "posts"
+        parts.append(f"publish {written} {noun}")
+    if removed:
+        noun = "post" if removed == 1 else "posts"
+        parts.append(f"remove {removed} {noun}")
+    if not parts:
+        return "Sync published posts"
+    return "Publish and remove posts" if len(parts) == 2 else parts[0].capitalize()
 
 
 def main():
@@ -673,40 +713,57 @@ def main():
         print("No exported markdown files found.")
         return
 
-    updated_titles = []
-    written = 0
-    skipped = 0
-    plan_items = []
-    skipped_items = []
-
+    notes = []
     for md_path in markdown_files:
         note = parse_note_markdown(md_path)
-        if not note:
-            continue
+        if note:
+            notes.append(note)
+
+    pending_removed_slugs = {
+        existing[note.note_id]["slug"]
+        for note in notes
+        if note.note_id in existing and not (note.has_publish or note.has_published)
+    }
+
+    updated_titles = []
+    written = 0
+    removed = 0
+    skipped = 0
+    plan_items = []
+    removal_items = []
+    skipped_items = []
+
+    for note in notes:
         existing_info = existing.get(note.note_id)
-        has_status_control = note.status in {PUBLISH_TAG, PUBLISHED_TAG}
-        is_blog = ("blog" in note.tags) or has_status_control
         has_publish = note.has_publish
         has_published = note.has_published
         tags_mode = "explicit"
 
-        if not is_blog:
-            if args.dry_run and note.has_native_tag_chips and not note.tags:
-                skipped_items.append(
-                    SkippedPlanItem(
+        if not (has_publish or has_published):
+            if existing_info:
+                removal_items.append(
+                    RemovePlanItem(
                         title=note.title,
+                        slug=existing_info["slug"],
+                        note_id=note.note_id,
                         source_path=note.source_path,
-                        reason="native Notes tag chips detected without explicit text controls (add Status: publish)",
+                        reason="missing Status: publish/published",
                     )
                 )
-            continue
-        if not (has_publish or has_published):
-            if args.dry_run and note.has_native_tag_chips and not note.tags:
+                if not args.dry_run and remove_post(existing_info["slug"]):
+                    removed += 1
+            else:
+                skipped += 1
+            if args.dry_run and not existing_info:
+                if note.has_native_tag_chips and not note.tags:
+                    reason = "native Notes tag chips detected; add explicit Status: publish/published"
+                else:
+                    reason = "missing Status: publish/published"
                 skipped_items.append(
                     SkippedPlanItem(
                         title=note.title,
                         source_path=note.source_path,
-                        reason="native Notes tag chips detected; add Status: publish",
+                        reason=reason,
                     )
                 )
             continue
@@ -734,7 +791,7 @@ def main():
             slug = slugify(note.title)
         if not slug:
             slug = note.note_id
-        slug = ensure_unique_slug(slug, note.note_id)
+        slug = ensure_unique_slug(slug, note.note_id, pending_removed_slugs)
         rename_from_slug = None
         if existing_info and note.slug_override and slug != existing_info.get("slug"):
             rename_from_slug = existing_info.get("slug")
@@ -768,24 +825,24 @@ def main():
             updated_titles.append(note.title)
 
     if args.dry_run:
-        describe_plan(plan_items, skipped_items)
+        describe_plan(plan_items, removal_items, skipped_items)
         return
 
-    if written == 0:
+    if written == 0 and removed == 0:
         if skipped:
-            print(f"No posts required publishing. skipped: {skipped}")
+            print(f"No posts required changes. skipped: {skipped}")
             return
-        print("No matching notes found with Status: publish/published.")
+        print("No notes required publishing or removal.")
         return
 
     if args.local_only:
-        print(f"Processed locally: {written}, skipped: {skipped}")
+        print(f"Processed locally: published {written}, removed {removed}, skipped: {skipped}")
         return
 
-    git(["add", str(CONTENT_DIR)])
+    git(["add", "-A", str(CONTENT_DIR)])
     diff_check = git(["diff", "--cached", "--quiet"])
     if diff_check.returncode != 0:
-        git(["commit", "-m", f"Publish {written} posts"])
+        git(["commit", "-m", build_commit_message(written, removed)])
         push = git(["push"])
         if push.returncode != 0:
             sys.stderr.write("Git push failed. Notes not updated.\n")
@@ -795,7 +852,7 @@ def main():
         update_notes_to_published(updated_titles)
     elif args.skip_export and updated_titles:
         print("Apple Notes update skipped in --skip-export mode.")
-    print(f"Processed: {written}, skipped: {skipped}")
+    print(f"Processed: published {written}, removed {removed}, skipped: {skipped}")
 
 
 if __name__ == "__main__":
