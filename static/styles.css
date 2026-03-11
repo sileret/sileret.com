@@ -364,6 +364,30 @@ body {
   border: 1px solid var(--line);
 }
 
+.content .image-figure {
+  width: 100%;
+  margin: 0 0 1.1rem;
+}
+
+.content .image-figure > a {
+  display: block;
+}
+
+.content .image-figure img {
+  display: block;
+  width: 100%;
+  margin: 0;
+}
+
+.content .image-caption {
+  display: inline-block;
+  margin-top: 0.45rem;
+}
+
+.content .image-figure {
+  text-align: center;
+}
+
 .site-footer {
   margin-top: 3rem;
   padding-top: 1.15rem;

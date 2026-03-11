@@ -1,7 +1,7 @@
 ---
 title: "Initial post to test setup"
 date: 2026-02-27T23:35:20+01:00
-lastmod: 2026-03-10T22:20:41+01:00
+lastmod: 2026-03-10T23:37:04+01:00
 tags:
   - test
 note_id: "p11419"
@@ -15,4 +15,4 @@ Update: I tried adding an old post about Renaissance Technologies.
 
 Adding a picture:
 
-![Image 1](attachments/image-1.jpg)
+![Grainy, aerial view of Vienna’s first district at night in black and white](attachments/image-1.jpg "Vienna’s first district at night")

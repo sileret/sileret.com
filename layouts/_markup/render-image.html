@@ -4,7 +4,7 @@
   {{- $src = .RelPermalink -}}
 {{- end -}}
 {{- if .Title -}}
-<figure>
+<figure class="image-figure">
   <a href="{{ $src | safeURL }}">
     <img
       src="{{ $src | safeURL }}"
@@ -14,7 +14,7 @@
       title="{{ .Title }}"
     >
   </a>
-  <figcaption>{{ .Title }}</figcaption>
+  <figcaption class="tag image-caption">{{ .Title }}</figcaption>
 </figure>
 {{- else -}}
 <a href="{{ $src | safeURL }}">

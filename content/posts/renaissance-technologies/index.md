@@ -7,7 +7,7 @@ tags:
   - finance
 ---
 
-![Renaissance Technologies](rentec-aerial-view.png)
+![Aerial view of the Renaissance Technologies campus](rentec-aerial-view.png "Renaissance Technologies headquarters in East Setauket, New York")
 
 After reading [Gregory Zuckerman&rsquo;s](https://www.gregoryzuckerman.com) [The Man Who Solved the Market: How Jim Simons Launched the Quant Revolution](https://www.amazon.com/Man-Who-Solved-Market-Revolution/dp/073521798X) I wanted to find out more about [Renaissance Technologies](https://www.rentec.com/) (RenTec). There are a lot of interviews with Jim Simons and other videos related to Renaissance/Medallion on YouTube but I could not find anything that doesn&rsquo;t just echo what&rsquo;s in the book. I thought it might be more interesting to hear from other people working at the company. Below is what I was able to find.
 
