@@ -111,6 +111,12 @@ Shortcut mode:
 - Does not run AppleScript export
 - Does not update Apple Notes bodies unless code is changed
 
+Local preview mode:
+
+- `--local-only` writes or updates post bundles locally
+- Skips git staging, commit, and push
+- Skips updating Apple Notes from `Status: publish` to `Status: published`
+
 ### What qualifies a note for publishing
 
 After export, a note is considered publishable when:

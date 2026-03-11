@@ -625,6 +625,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Do not update Apple Notes bodies from #publish to #published after publishing.",
     )
+    parser.add_argument(
+        "--local-only",
+        action="store_true",
+        help="Write local post files but skip git commit/push and Apple Notes status updates.",
+    )
     return parser.parse_args()
 
 
@@ -771,6 +776,10 @@ def main():
             print(f"No posts required publishing. skipped: {skipped}")
             return
         print("No matching notes found with Status: publish/published.")
+        return
+
+    if args.local_only:
+        print(f"Processed locally: {written}, skipped: {skipped}")
         return
 
     git(["add", str(CONTENT_DIR)])

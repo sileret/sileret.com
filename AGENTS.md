@@ -6,6 +6,9 @@ This repository is a Hugo blog.
 - Make changes in-place in this repo.
 - Do not introduce tooling that changes site output format unless explicitly requested.
 
+## Required Read First
+- Before any work, read `docs/codex-project-notes.md` and use it as the repo-specific briefing.
+
 ## Important Paths
 - Site config: `hugo.toml`
 - Content posts: `content/posts/<slug>/index.md`
