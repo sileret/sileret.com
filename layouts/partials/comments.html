@@ -1,0 +1,9 @@
+{{- $commentsEnabled := true -}}
+{{- if isset .Params "comments" -}}
+  {{- $commentsEnabled = .Params.comments -}}
+{{- end -}}
+{{- if and $commentsEnabled .Site.Params.comments.enabled -}}
+  {{- if eq .Site.Params.comments.provider "hyvor" -}}
+    {{- partial "comments/hyvor.html" . -}}
+  {{- end -}}
+{{- end -}}

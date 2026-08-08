@@ -1,0 +1,18 @@
+{{- $websiteID := .Site.Params.comments.websiteId -}}
+{{- if $websiteID -}}
+  {{- $commentID := partial "post-comment-id.html" . -}}
+  <section id="comments" aria-labelledby="comments-heading">
+    <h2 id="comments-heading">Comments</h2>
+    <script async src="https://talk.hyvor.com/embed/embed.js" type="module"></script>
+    <hyvor-talk-comments
+      website-id="{{ $websiteID }}"
+      page-id="{{ $commentID }}"
+      page-url="{{ .Permalink }}"
+      page-title="{{ .Title }}"
+      colors="{{ .Site.Params.comments.colors | default "os" }}"
+      loading="{{ .Site.Params.comments.loading | default "lazy" }}"
+    ></hyvor-talk-comments>
+  </section>
+{{- else -}}
+  <!-- Hyvor Talk is selected but params.comments.websiteId is not configured. -->
+{{- end -}}

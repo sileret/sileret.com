@@ -1,0 +1,11 @@
+{{- $commentsEnabled := true -}}
+{{- if isset .Params "comments" -}}
+  {{- $commentsEnabled = .Params.comments -}}
+{{- end -}}
+{{- $websiteID := .Site.Params.comments.websiteId -}}
+{{- if and $commentsEnabled (eq .Section "posts") .Site.Params.comments.enabled $websiteID (eq .Site.Params.comments.provider "hyvor") -}}
+  {{- $commentID := partial "post-comment-id.html" . -}}
+  <a href="{{ .RelPermalink }}#comments">
+    <hyvor-talk-comment-count page-id="{{ $commentID }}">Comments</hyvor-talk-comment-count>
+  </a>
+{{- end -}}

@@ -1,223 +1,191 @@
-# Codex Project Notes
+# Codex project notes
 
-This file is for future Codex sessions working in this repository. It records the current structure and behavior of the site as implemented, not just the intended workflow.
+This is the repository-specific briefing for future Codex sessions. It describes current implementation, not older intended workflows.
 
 ## Project snapshot
 
-- Static site generator: Hugo
-- Theme model: custom templates in `layouts/`; no external theme
-- Main site stylesheet: `static/styles.css`
-- Content model: page bundles under `content/posts/<slug>/index.md`
-- Publish automation: `scripts/publish.py`
-- Main layout width in `static/styles.css` is currently `700px` via `.wrap`
+- Static site generator: Hugo, custom templates, no external theme.
+- Production host: Cloudflare Pages.
+- Production URL: `https://sileret.com/`.
+- Primary authoring model: direct Markdown page bundles.
+- Production build command: `python3 scripts/build.py`.
+- Comments provider: Hyvor Talk, enabled after deployment supplies a Website ID.
+- Analytics provider: Cloudflare Web Analytics, enabled externally in Cloudflare.
+- Public historical versions: generated from Git at build time.
+- Main stylesheet: `static/styles.css`, user-owned and off-limits without an explicit CSS request.
 
-Current config in `hugo.toml` is minimal:
+The site currently uses Hugo `0.164.0` extended locally. `hugo.toml` uses `locale = "en-US"`; the deprecated `languageCode` key is no longer used.
 
-- site title: `sileret`
-- taxonomy: `tag -> tags`
-- home page does not use `params.heroTitle` or `params.tagline` anywhere in templates
-- `params.contactEmail` is configured but currently unused in templates
+## Repository map
 
-## Repo map
+- `hugo.toml`: site and provider-neutral comment configuration.
+- `archetypes/posts.md`: standard article archetype.
+- `archetypes/thought.md`: quick-thought archetype.
+- `content/posts/<slug>/index.md`: current posts.
+- `content/about/index.md`: About page.
+- `layouts/partials/post-card.html`: shared home/list rendering for articles and thoughts.
+- `layouts/partials/comments.html`: comment-provider dispatcher.
+- `layouts/partials/comments/hyvor.html`: Hyvor full-post embed.
+- `layouts/partials/post-comment-id.html`: stable comment identity resolution.
+- `layouts/partials/post-comments-link.html`: post-list comment link/count.
+- `layouts/partials/comment-count-loader.html`: one Hyvor count loader per list page.
+- `layouts/_default/single.html`: current post/page template and public history list.
+- `layouts/_default/post-version.html`: read-only historical-version template.
+- `scripts/generate_history.py`: generates history data, version pages, and historical assets.
+- `scripts/build.py`: full-history check, history generation, and production Hugo build.
+- `scripts/publish.py`: separate legacy Apple Notes sync; not the manual-post publisher.
+- `docs/authoring-and-publishing.md`: canonical content and publishing workflow.
+- `docs/services.md`: Hyvor and Cloudflare setup and migration notes.
 
-- `hugo.toml`: site config
-- `content/_index.md`: home page body content
-- `content/about/index.md`: About page content
-- `content/posts/<slug>/index.md`: blog posts
-- `layouts/index.html`: home page post feed
-- `layouts/_default/list.html`: section and taxonomy list pages
-- `layouts/_default/single.html`: regular single content pages, including posts
-- `layouts/about/single.html`: About page layout
-- `layouts/_default/baseof.html`: shared HTML shell and navigation
-- `static/styles.css`: user-owned site styling; do not edit unless explicitly asked
-- `scripts/publish.py`: Apple Notes/Shortcut import, Hugo bundle generation, git publish
-- `docs/shortcut-publish-workflow.md`: Shortcut export mode notes
+## Content formats
 
-## Rendering behavior
+Post bundles live at `content/posts/<slug>/index.md`; assets live beside `index.md`.
 
-### Home page
+### Articles
 
-- Uses `layouts/index.html`.
-- Displays the 12 most recent pages in section `posts`.
-- Does not use Hugo pagination despite `pagination.pagerSize = 10` in config.
-
-### Post and list cards
-
-- Both home and list pages try to find a thumbnail in this order:
-  1. resource matching `title-image*`
-  2. resource matching `cover*`
-  3. first image resource in the bundle
-- Home and list pages do not render the original asset directly anymore; they generate a listing thumbnail with Hugo image processing using `.Fill "960x270 Top"`
-- The listing crop is intentionally shallow and top-anchored so feed images take less vertical space and are cut off toward the bottom
-- Card summary uses `.Summary` unless the summary contains an image, in which case it falls back to truncated plain text.
-
-### Single posts
-
-- Post layout shows title, `date`, optional `lastmod`, tags, and full content.
-- For pages in section `posts`, the single layout renders `.TableOfContents` above the article body when Hugo generates a non-empty TOC.
-- Markdown images are rendered through `layouts/_markup/render-image.html`.
-- Post images are wrapped in links to their original asset.
-- If a Markdown image has a title, the render hook outputs a `<figure>` with a visible `<figcaption>`.
-
-### About page
-
-- Uses a dedicated layout, but the layout is minimal and just renders `.Content`.
-
-### Tags
-
-- Taxonomy is enabled via `tag = "tags"`.
-- There is no custom tags template; Hugo will fall back to the default list template for tag pages.
-
-## Content conventions
-
-### Post bundles
-
-- Posts are leaf bundles: `content/posts/<slug>/index.md`
-- Images can live beside `index.md` and be referenced relatively
-- Apple Notes exports can attach image metadata by placing `Alt:` and `Caption:` lines immediately below an embedded image; the publish script converts those into Markdown image alt text and title/caption
-- Example already in repo: `content/posts/renaissance-technologies/rentec-aerial-view.png`
-
-### Front matter used by generated posts
-
-The publish script writes:
+Articles use:
 
 ```yaml
----
-title: "Post title"
-date: 2026-03-01T12:00:00+01:00
-lastmod: 2026-03-03T12:00:00+01:00
-tags:
-  - example
-note_id: "p11419"
----
+format: article
 ```
 
-Notes:
+Post lists show an Article label, date, optional update date, reading time, thumbnail, summary, and “Continue reading” link. A `<!--more-->` divider controls the summary boundary. Posts without `format` default to articles.
 
-- `note_id` is how the publish script matches an exported note to an existing post.
-- Existing `date` is preserved on republish; `lastmod` is refreshed from the note modified time.
-- Manual posts are valid without `note_id`, but the publish script only tracks posts that do have one.
+### Thoughts
 
-## Publish script: actual behavior
+Thoughts use:
 
-`scripts/publish.py` is the operational core of this repo. Future changes should be based on the code below, not older assumptions.
+```yaml
+format: thought
+```
 
-### Export modes
+Post lists show the entire thought. Thoughts retain a permanent page for linking, comment discussion, and version history. Listing thumbnails are intentionally omitted for thoughts.
 
-Default mode:
+### Shared front matter
 
-- Recreates `.notes-export/`
-- Uses AppleScript to export notes from Apple Notes folder `Blog` unless overridden by `NOTES_BLOG_FOLDER`
-- Exports every note in that folder, not just notes containing a `Tags:` line
-- Reads both `plaintext` and HTML `body` from Apple Notes during export
-- Extracts embedded Notes images from HTML `data:image/...` sources into per-note export asset folders like `<note>.assets/`
-- Rewrites inline Notes images into Markdown image links pointing at those exported asset files
+New archetypes include:
 
-Shortcut mode:
+```yaml
+draft: true
+comments: true
+comment_id: "stable-slug-like-id"
+```
 
-- `--skip-export` reads pre-exported markdown files from `NOTES_EXPORT_ROOT_DIR`
-- Does not run AppleScript export
-- Does not update Apple Notes bodies unless code is changed
+`comment_id` is permanent after comments exist. `comments: false` disables the link and embed for one post.
 
-Local preview mode:
+## Home and list rendering
 
-- `--local-only` writes or updates post bundles locally
-- Skips git staging, commit, and push
-- Skips updating Apple Notes from `Status: publish` to `Status: published`
+- Home uses `layouts/index.html` and displays the 12 newest pages in `posts`.
+- Section/taxonomy lists use `layouts/_default/list.html`.
+- Both delegate each item to `layouts/partials/post-card.html` so article/thought behavior cannot drift between templates.
+- Article thumbnails are selected in this order: `title-image*`, `cover*`, then the first bundle image.
+- Thumbnails use Hugo image processing with `.Fill "960x270 Top"`.
+- Article summaries containing an image fall back to truncated plain text.
+- Comment counts load only when the Hyvor Website ID is configured.
 
-### What qualifies a note for publishing
+## Single posts
 
-After export, a note is considered publishable when:
+- Show Article/Thought, publication date, optional update date, and article reading time.
+- Article table of contents is rendered when Hugo produces a non-empty TOC.
+- Thoughts do not render a TOC.
+- Markdown image behavior remains in `layouts/_markup/render-image.html`: images link to originals; titled images get figures and captions.
+- Current post pages own the sole comment thread.
 
-- it has `Status: publish` or `Status: published`
+## Hyvor Talk
 
-Important detail:
+`hugo.toml` selects `provider = "hyvor"` and enables comments, but `websiteId` is deliberately empty. Production must provide:
 
-- The parser understands `Tags:`, `Control:`, `Status:`, `Slug:`, `Note ID:`, `note_id:`, `Modified:`, and `Lastmod:`.
-- Explicit hashtag tokens on the `Tags:` or `Control:` line are preferred when present.
-- Control tags `blog`, `publish`, and `published` are stripped before writing Hugo `tags` front matter.
+```text
+HUGO_PARAMS_COMMENTS_WEBSITEID=<numeric Hyvor Website ID>
+```
 
-### Post writing behavior
+Without the ID, Hugo emits no third-party embed. When configured, current posts lazy-load the full Hyvor component and list pages load comment counts.
 
-For each qualifying note, the script:
+Identity priority:
 
-- resolves slug from `Slug:` override, existing post slug, or slugified title
-- preserves the old slug unless a new explicit slug override is supplied
-- renames the bundle directory when an existing post gets a new slug override
-- converts embedded Apple Notes images into local Markdown image links during export
-- when an embedded image is immediately followed by `Alt:` and/or `Caption:` lines in Apple Notes plaintext, converts those into Markdown image alt text and title
-- rewrites relative Markdown links to local files into `attachments/<filename>`
-- recreates the `attachments/` folder on each write
-- copies linked local files into the post bundle
+1. Explicit post `comment_id`.
+2. Oldest Git revision-derived stable ID from generated history.
+3. Hugo file UniqueID fallback.
+4. Page permalink fallback for non-file pages.
 
-### Republish behavior
+Before importing WordPress comments, explicit IDs must be mapped to the WordPress identifier type chosen in Hyvor. See `docs/services.md`.
 
-- If note status is `published` and the exported note `mtime` is not newer than the post `lastmod`, the script skips rewriting that post.
-- If note status is `publish`, the script writes the post and later attempts to update the Apple Note body from `Status: publish` to `Status: published` in default export mode.
-- If an exported note maps to an existing generated post and no longer has `Status: publish` or `Status: published`, the script removes that post bundle.
+## Public version history
 
-### Git behavior
+`scripts/generate_history.py` follows each post's `index.md` history, including renames. It generates ignored build inputs:
 
-When at least one post is written or removed, the script:
+```text
+content/post-versions/
+data/generated_post_history.json
+```
 
-- stages `content/posts`, including deletions
-- commits only if the staged diff is non-empty
-- pushes
-- aborts Notes status updates if `git push` fails
+For every prior committed `index.md` revision it:
 
-The script does not stage templates, config, docs, or CSS.
+- Reads the old Markdown blob with `git show`.
+- Copies the bundle assets that existed at that commit.
+- Generates `/posts/<current-slug>/versions/<12-character-commit>/`.
+- Records date, commit subject, URL, and current/past status.
 
-## Known mismatches and footguns
+Historical pages are read-only, `noindex, follow`, and point to the current post/comments. The current post contains a collapsible version list when more than one committed version exists.
 
-These are the most important things to re-check before future edits:
+Known boundaries:
 
-1. `AGENTS.md` still describes publish selection in terms of `#blog` plus `#publish` or `#published`, but the live script now requires `Status: publish` / `Status: published`.
-2. `docs/shortcut-publish-workflow.md` mentions `Control: blog publish` and `Tags:`-style exports, which is only part of the current picture.
-3. `baseURL` in `hugo.toml` is still `https://example.com/`; if production behavior ever matters, verify whether deployment overrides it externally.
-4. `pagination.pagerSize` is configured but unused because the home page template manually takes the first 12 posts.
-5. Listing thumbnails now rely on Hugo image processing. That works for raster resources like PNG/JPEG/WebP, but a future SVG-only thumbnail would need a template fallback instead of `.Fill`.
+- Only commits touching `index.md` create versions; asset-only commits do not.
+- Commit subjects are public site content.
+- Generated history represents committed Git state, not uncommitted edits.
+- A full clone is mandatory. `scripts/build.py` unshallows before generation.
+- Generated directories are disposable and must never be committed or edited.
 
-## Safe working rules for future Codex sessions
+## Build and deployment
 
-- Treat `static/styles.css` as user-owned and off-limits unless the user explicitly asks for CSS edits.
-- Preserve existing post content unless the user asks for editorial changes.
-- Assume `content/posts/` may contain a mix of generated and manual posts.
-- Before changing publish behavior, inspect both `scripts/publish.py` and the latest docs because repo instructions have already drifted once.
-- If a task touches publishing, always check whether the user means Apple Notes export mode or Shortcut `--skip-export` mode.
-
-## Recommended verification workflow
-
-For routine site changes:
+Required local verification:
 
 ```bash
-git status --short
-hugo
+python3 -m unittest discover -s tests
+python3 scripts/build.py
 ```
 
-For publish workflow changes:
+For preview:
 
 ```bash
-git status --short
-python3 scripts/publish.py --dry-run
-hugo
+python3 scripts/generate_history.py
+hugo server -D
 ```
 
-For Shortcut export mode:
+Cloudflare Pages configuration:
 
-```bash
-NOTES_EXPORT_ROOT_DIR="/absolute/path/to/export" python3 scripts/publish.py --skip-export --dry-run
-hugo
+```text
+Production branch: main
+Build command: python3 scripts/build.py
+Output directory: public
 ```
 
-Use `hugo server -D` only when a visual check is needed.
+Do not replace the production command with plain `hugo`; public history would disappear from a clean build.
 
-## When this file should be updated
+Cloudflare Web Analytics is enabled using the Pages project Metrics dashboard. It is not represented by a tracked script or token in this repository.
 
-Update this document whenever any of the following change:
+## Apple Notes status
 
-- publish eligibility rules
-- note export format
-- front matter written by the script
-- bundle/image conventions
-- template selection logic
-- verification or deploy workflow
+Apple Notes is not currently the primary publishing path. `scripts/publish.py` remains for possible future use and should not be invoked to publish direct Markdown posts.
+
+The live Notes script selects `Status: publish` or `Status: published`, not the old `#blog` plus `#publish` rule still found in older commits. It can generate, update, rename, or remove Notes-managed bundles and stages all of `content/posts`, so future agents must keep it isolated from manual publishing.
+
+## Known external setup still required
+
+Repository code cannot complete these dashboard actions:
+
+1. Create/configure the Hyvor Talk site and provide `HUGO_PARAMS_COMMENTS_WEBSITEID` in Cloudflare Pages.
+2. Reconcile WordPress comment identifiers before importing comments.
+3. Enable Cloudflare Web Analytics under the Pages project Metrics tab.
+4. Confirm Cloudflare uses `python3 scripts/build.py`, output directory `public`, and a compatible Hugo version.
+5. Replace or update the site's privacy notice with the operator's real Hyvor/Cloudflare practices before public launch.
+
+## Safety and maintenance rules
+
+- Read this file before work, plus the focused docs named in `AGENTS.md`.
+- Preserve user content edits and unrelated dirty worktree files.
+- Never stage all post bundles when publishing one manual post.
+- Never edit generated history files.
+- Never change a live `comment_id` without migrating the Hyvor thread.
+- Treat `static/styles.css` as user-owned.
+- Update this briefing whenever content formats, comment identity, history generation, external services, build commands, or deployment behavior change.

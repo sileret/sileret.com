@@ -7,3 +7,5 @@ tools/notes-exporter/
 __pycache__/
 *.pyc
 .hugo_build.lock
+/content/post-versions/
+/data/generated_post_history.json

@@ -1,6 +1,6 @@
-baseURL = "https://example.com/"
+baseURL = "https://sileret.com/"
 title = "sileret"
-languageCode = "en-us"
+locale = "en-US"
 enableRobotsTXT = true
 pagination.pagerSize = 10
 
@@ -11,3 +11,10 @@ tag = "tags"
 heroTitle = ""
 tagline = ""
 contactEmail = "root@sileret.com"
+
+[params.comments]
+enabled = true
+provider = "hyvor"
+websiteId = ""
+colors = "os"
+loading = "lazy"

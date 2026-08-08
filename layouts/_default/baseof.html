@@ -6,6 +6,8 @@
     <meta name="color-scheme" content="light dark">
     <title>{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title }} — {{ .Site.Title }}{{ end }}</title>
     {{ with .Params.description }}<meta name="description" content="{{ . }}">{{ end }}
+    {{ with .Params.robots }}<meta name="robots" content="{{ . }}">{{ end }}
+    <link rel="canonical" href="{{ .Permalink }}">
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
@@ -25,5 +27,6 @@
         <span>© {{ now.Format "2006" }} {{ .Site.Title }}</span>
       </footer>
     </div>
+    {{ partial "comment-count-loader.html" . }}
   </body>
 </html>

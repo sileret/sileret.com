@@ -1,0 +1,20 @@
+{{ define "main" }}
+  <article class="post">
+    <header class="post-header">
+      <p class="meta">Historical version</p>
+      <h1>{{ .Params.original_title }}</h1>
+      <p class="meta">
+        Version from <time datetime="{{ .Params.version_date }}">{{ time.Format "Jan 2, 2006" .Params.version_date }}</time>
+        <span class="meta-sep">•</span>
+        <a href="{{ .Params.current_url }}">View the current post</a>
+      </p>
+    </header>
+    <aside>
+      <p>This is a read-only historical version. Comments and discussion remain attached to the current post.</p>
+    </aside>
+    <div class="content">
+      {{ .Content }}
+    </div>
+    <p><a href="{{ .Params.current_url }}">Return to the current post and comments →</a></p>
+  </article>
+{{ end }}

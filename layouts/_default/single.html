@@ -1,15 +1,22 @@
 {{ define "main" }}
   {{ $isPost := eq .Section "posts" }}
+  {{ $format := lower (.Params.format | default "article") }}
+  {{ $history := false }}
+  {{ if and $isPost hugo.Data.generated_post_history }}
+    {{ $history = index hugo.Data.generated_post_history .File.Path }}
+  {{ end }}
   {{ $toc := "" }}
-  {{ if $isPost }}
+  {{ if and $isPost (eq $format "article") }}
     {{ $toc = .TableOfContents }}
   {{ end }}
   <article class="post">
     <header class="post-header">
       <h1>{{ .Title }}</h1>
       <p class="meta">
+        {{ if $isPost }}<span>{{ if eq $format "thought" }}Thought{{ else }}Article{{ end }}</span><span class="meta-sep">•</span>{{ end }}
         <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "Jan 2, 2006" }}</time>
         {{ if ne .Lastmod .Date }}<span class="meta-sep">•</span><span>Updated {{ .Lastmod.Format "Jan 2, 2006" }}</span>{{ end }}
+        {{ if and $isPost (eq $format "article") }}<span class="meta-sep">•</span><span>{{ .ReadingTime }} min read</span>{{ end }}
       </p>
       {{ with .Params.tags }}
         <p class="tag-row">
@@ -28,5 +35,27 @@
     <div class="content">
       {{ .Content }}
     </div>
+    {{ with $history }}
+      {{ if gt (len .versions) 1 }}
+        <details class="post-history">
+          <summary>Version history ({{ len .versions }} versions)</summary>
+          <ol>
+            {{ range .versions }}
+              <li>
+                <time datetime="{{ .date }}">{{ time.Format "Jan 2, 2006" .date }}</time>
+                —
+                {{ if .current }}
+                  Current version
+                {{ else }}
+                  <a href="{{ .url }}">View this version</a>
+                {{ end }}
+                {{ with .subject }}<span class="meta"> — {{ . }}</span>{{ end }}
+              </li>
+            {{ end }}
+          </ol>
+        </details>
+      {{ end }}
+    {{ end }}
+    {{ if $isPost }}{{ partial "comments.html" . }}{{ end }}
   </article>
 {{ end }}

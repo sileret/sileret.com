@@ -1,0 +1,15 @@
+{{- $commentID := .Params.comment_id -}}
+{{- if and (not $commentID) .File -}}
+  {{- with hugo.Data.generated_post_history -}}
+    {{- with index . $.File.Path -}}
+      {{- $commentID = .stable_id -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- if and (not $commentID) .File -}}
+  {{- $commentID = printf "post:%s" .File.UniqueID -}}
+{{- end -}}
+{{- if not $commentID -}}
+  {{- $commentID = printf "page:%s" .RelPermalink -}}
+{{- end -}}
+{{- return $commentID -}}

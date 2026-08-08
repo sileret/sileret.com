@@ -1,0 +1,11 @@
+{{- $websiteID := .Site.Params.comments.websiteId -}}
+{{- if and .Site.Params.comments.enabled $websiteID (eq .Site.Params.comments.provider "hyvor") (not .IsPage) -}}
+  <script src="https://talk.hyvor.com/embed/comment-counts.js" type="module"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      if (window.hyvorTalkCommentCounts) {
+        window.hyvorTalkCommentCounts.load({"website-id": {{ $websiteID | jsonify | safeJS }}});
+      }
+    });
+  </script>
+{{- end -}}
