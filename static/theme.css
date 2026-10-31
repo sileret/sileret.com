@@ -1,0 +1,81 @@
+/* Explicit choices use the same palettes as styles.css; System uses its media query. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f8f5ee;
+  --surface: #fdfbf7;
+  --text: #000000;
+  --muted: #5e5750;
+  --line: #ded6cb;
+  --link: #70432c;
+  --link-hover: #4f2e1e;
+  --shadow: 0 10px 28px rgba(37, 26, 16, 0.08);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #141210;
+  --surface: #1b1815;
+  --text: #ede5da;
+  --muted: #c1b5a7;
+  --line: #322b25;
+  --link: #e2b28b;
+  --link-hover: #f3ceaf;
+  --shadow: none;
+}
+
+.site-header-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.site-header-tools .site-nav {
+  align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+.theme-toggle[hidden],
+.theme-toggle svg {
+  display: none;
+}
+
+.theme-toggle[data-theme-mode="system"] .theme-icon-system,
+.theme-toggle[data-theme-mode="light"] .theme-icon-light,
+.theme-toggle[data-theme-mode="dark"] .theme-icon-dark {
+  display: block;
+}
+
+@media (max-width: 720px) {
+  .site-header-tools {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

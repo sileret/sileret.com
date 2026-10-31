@@ -63,6 +63,8 @@ Articles with a table of contents show its section links in the sidebar after th
 
 The sidebar highlights the current section as the reader scrolls, including subsections. Following a ToC link updates the highlight automatically. The marker clears when returning above the first section.
 
+The header's theme icon cycles through System (monitor), Light (sun), and Dark (moon). System follows the visitor's device setting automatically. An explicit choice is remembered in that browser and selecting System restores automatic switching. This is a reader preference and requires no front-matter changes.
+
 ## Comment identity
 
 `comment_id` is the permanent Hyvor Talk thread identifier. Do not change it after a post receives comments, even if its title or URL changes.

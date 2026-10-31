@@ -8,6 +8,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
+    <script src="/theme.js"></script>
     <title>{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title }} — {{ .Site.Title }}{{ end }}</title>
     {{ with .Params.description }}<meta name="description" content="{{ . }}">{{ end }}
     {{ with .Params.robots }}<meta name="robots" content="{{ . }}">{{ end }}
@@ -15,19 +16,23 @@
     <link rel="alternate" type="application/rss+xml" title="{{ .Site.Title }} posts" href="{{ "posts/index.xml" | absURL }}">
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="/post-history.css">
+    <link rel="stylesheet" href="/theme.css">
     <script src="/site-navigation.js" defer></script>
   </head>
   <body id="page-top"{{ if $hasSidebar }} class="has-sidebar{{ if $hasHistory }} has-post-history{{ end }}"{{ end }}>
     <div class="wrap">
       <header class="site-header">
         <a class="site-title" href="/">{{ .Site.Title }}</a>
-        <nav class="site-nav">
-          <a href="/about/">About</a>
-          <a href="/posts/">Posts</a>
-          <a href="/tags/">Tags</a>
-          <a href="/posts/index.xml">RSS</a>
-          {{ if .Site.Params.search.enabled }}<a href="/search/">Search</a>{{ end }}
-        </nav>
+        <div class="site-header-tools">
+          <nav class="site-nav" aria-label="Main navigation">
+            <a href="/about/">About</a>
+            <a href="/posts/">Posts</a>
+            <a href="/tags/">Tags</a>
+            <a href="/posts/index.xml">RSS</a>
+            {{ if .Site.Params.search.enabled }}<a href="/search/">Search</a>{{ end }}
+          </nav>
+          {{ partial "theme-toggle.html" . }}
+        </div>
       </header>
       <main class="page">
         {{ if $hasSidebar }}<div class="post-layout">{{ end }}

@@ -40,6 +40,9 @@ The private VM pins Hugo `0.164.0`; local verification on October 31 used Hugo
 - `layouts/partials/recently-updated.html`: selects the five most recently updated published posts.
 - `static/post-history.css`: responsive sidebar layout and fragment scroll offsets; keeps the main stylesheet untouched.
 - `static/site-navigation.js`: measures sticky-header height for section links and sidebar positioning, and toggles the sidebar ToC.
+- `layouts/partials/theme-toggle.html`: accessible System/Light/Dark icon button in the header.
+- `static/theme.js`: applies saved theme choices before paint and handles the three-state control.
+- `static/theme.css`: explicit palette overrides and responsive theme-button styles; keep its palettes synchronized with `static/styles.css` if colors change.
 - `layouts/partials/comments.html`: comment-provider dispatcher.
 - `layouts/partials/comments/hyvor.html`: Hyvor full-post embed.
 - `layouts/partials/post-comment-id.html`: stable comment identity resolution.
@@ -97,6 +100,7 @@ comment_id: "stable-slug-like-id"
 - Home includes a sidebar with Recently updated and Explore. Recently updated lists up to five distinct published posts ordered by `lastmod`, requiring `lastmod` later than `date` and at least two committed versions. `update_summary` overrides the latest public commit subject; `show_update: false` suppresses an entry. Empty update lists are omitted. Explore lists up to five topics with published-post counts and links to all posts (and all topics when needed); draft-only topics are omitted.
 - On pages with sidebars, the header spans both columns. At widths below 1100px the sidebar follows the main content; the original desktop reading width is retained.
 - The page and sticky header share the solid `--bg` background in both color schemes, overriding the original gradient through `static/post-history.css`.
+- The header theme button cycles System → Light → Dark → System, using monitor, sun, and moon symbols. System is the default and keeps the existing `prefers-color-scheme` automatic switching, including live OS preference changes. Explicit choices are saved under `sileret-theme` in local storage; selecting System removes the override. Storage failures fall back safely, and changes synchronize across tabs. The small blocking `/theme.js` script runs before stylesheets to apply a saved override before first paint; the button is enabled on DOM ready. Without JavaScript the control is hidden and the existing automatic CSS behavior remains.
 - The shared HTML head advertises the posts-only RSS feed at `/posts/index.xml`, and the main navigation includes a visible RSS link.
 - Section/taxonomy lists use `layouts/_default/list.html`.
 - Both delegate each item to `layouts/partials/post-card.html` so article/thought behavior cannot drift between templates.
