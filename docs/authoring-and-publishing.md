@@ -22,6 +22,8 @@ content/posts/<slug>/
 
 Images and other post assets belong beside `index.md` and use relative links.
 
+Clicking a Markdown image opens the original in a browser-sized viewer, fitted without cropping. Use Close or Escape to return to the post, Open original to open the file separately, or the fullscreen control where the browser supports it. Posts with multiple images show previous/next arrows; the left/right arrow keys work too. Galleries follow the order of images in the post, skip repeated asset URLs, and stay separate for each post or historical version. No extra front matter or image markup is required. Without JavaScript, images still link directly to their original files. Article-list thumbnails continue to open their articles.
+
 ## Articles and thoughts
 
 Create an article:

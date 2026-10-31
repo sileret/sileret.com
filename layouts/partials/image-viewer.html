@@ -1,0 +1,30 @@
+<dialog class="image-viewer" id="image-viewer" aria-labelledby="image-viewer-heading" aria-describedby="image-viewer-caption" data-pagefind-ignore>
+  <div class="image-viewer-shell">
+    <header class="image-viewer-toolbar">
+      <h2 id="image-viewer-heading">Image viewer</h2>
+      <p class="image-viewer-count" data-viewer-count aria-live="polite"></p>
+      <div class="image-viewer-tools">
+        <a class="image-viewer-original" data-viewer-original target="_blank" rel="noopener">Open original</a>
+        <button type="button" class="image-viewer-control" data-viewer-fullscreen aria-label="Enter fullscreen" title="Enter fullscreen" aria-pressed="false" hidden>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M21 16v5h-5M8 21H3v-5"/></svg>
+        </button>
+        <button type="button" class="image-viewer-control" data-viewer-close aria-label="Close image viewer" title="Close image viewer" autofocus>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+    </header>
+    <div class="image-viewer-stage">
+      <img data-viewer-image alt="" decoding="async">
+      <button type="button" class="image-viewer-control image-viewer-previous" data-viewer-previous aria-label="Previous image" title="Previous image" hidden>
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>
+      </button>
+      <button type="button" class="image-viewer-control image-viewer-next" data-viewer-next aria-label="Next image" title="Next image" hidden>
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+      </button>
+    </div>
+    <footer class="image-viewer-footer">
+      <p id="image-viewer-caption" data-viewer-caption></p>
+      <p data-viewer-status role="status"></p>
+    </footer>
+  </div>
+</dialog>

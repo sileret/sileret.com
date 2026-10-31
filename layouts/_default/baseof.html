@@ -17,7 +17,9 @@
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="/post-history.css">
     <link rel="stylesheet" href="/theme.css">
+    <link rel="stylesheet" href="/image-viewer.css">
     <script src="/site-navigation.js" defer></script>
+    <script src="/image-viewer.js" defer></script>
   </head>
   <body id="page-top"{{ if $hasSidebar }} class="has-sidebar{{ if $hasHistory }} has-post-history{{ end }}"{{ end }}>
     <div class="wrap">
@@ -51,6 +53,7 @@
       </footer>
     </div>
     <a class="scroll-to-top" href="#page-top"><span aria-hidden="true">↑</span> Scroll to top</a>
+    {{ partial "image-viewer.html" . }}
     {{ partial "comment-count-loader.html" . }}
   </body>
 </html>

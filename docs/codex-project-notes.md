@@ -43,6 +43,9 @@ The private VM pins Hugo `0.164.0`; local verification on October 31 used Hugo
 - `layouts/partials/theme-toggle.html`: accessible System/Light/Dark icon button in the header.
 - `static/theme.js`: applies saved theme choices before paint and handles the three-state control.
 - `static/theme.css`: explicit palette overrides and responsive theme-button styles; keep its palettes synchronized with `static/styles.css` if colors change.
+- `layouts/partials/image-viewer.html`: accessible browser-sized image dialog.
+- `static/image-viewer.js`: original-image viewing, per-post galleries, keyboard controls, and optional native fullscreen.
+- `static/image-viewer.css`: viewport-filling image-viewer styles, separate from the main stylesheet.
 - `layouts/partials/comments.html`: comment-provider dispatcher.
 - `layouts/partials/comments/hyvor.html`: Hyvor full-post embed.
 - `layouts/partials/post-comment-id.html`: stable comment identity resolution.
@@ -99,6 +102,7 @@ comment_id: "stable-slug-like-id"
 - Home uses `layouts/index.html` and displays the 12 newest pages in `posts`.
 - Home includes a sidebar with Recently updated and Explore. Recently updated lists up to five distinct published posts ordered by `lastmod`, requiring `lastmod` later than `date` and at least two committed versions. `update_summary` overrides the latest public commit subject; `show_update: false` suppresses an entry. Empty update lists are omitted. Explore lists up to five topics with published-post counts and links to all posts (and all topics when needed); draft-only topics are omitted.
 - On pages with sidebars, the header spans both columns. At widths below 1100px the sidebar follows the main content; the original desktop reading width is retained.
+- Header menu links use a bold weight of 700, including Search when enabled, through `static/theme.css`.
 - The page and sticky header share the solid `--bg` background in both color schemes, overriding the original gradient through `static/post-history.css`.
 - The header theme button cycles System → Light → Dark → System, using monitor, sun, and moon symbols. System is the default and keeps the existing `prefers-color-scheme` automatic switching, including live OS preference changes. Explicit choices are saved under `sileret-theme` in local storage; selecting System removes the override. Storage failures fall back safely, and changes synchronize across tabs. The small blocking `/theme.js` script runs before stylesheets to apply a saved override before first paint; the button is enabled on DOM ready. Without JavaScript the control is hidden and the existing automatic CSS behavior remains.
 - The shared HTML head advertises the posts-only RSS feed at `/posts/index.xml`, and the main navigation includes a visible RSS link.
@@ -118,7 +122,7 @@ comment_id: "stable-slug-like-id"
 - Native fragment navigation reserves the measured sticky-header height plus 16px, so ToC targets and direct section links remain visible. CSS provides a fallback offset without JavaScript.
 - A fixed “Scroll to top” link is always visible on every page, including mobile. It uses the native `#page-top` target and works without JavaScript.
 - Thoughts do not render a TOC.
-- Markdown image behavior remains in `layouts/_markup/render-image.html`: images link to originals; titled images get figures and captions.
+- Markdown image behavior remains in `layouts/_markup/render-image.html`: titled images get figures and captions, and image links retain their original asset URLs as a no-JavaScript fallback. With JavaScript, an ordinary image click opens the original in a viewport-sized modal without cropping. The viewer has Close, Open original, and a fullscreen toggle when supported by the browser. Multiple images in the same post get previous/next arrows and left/right keyboard navigation, wrapping at the ends. Repeated asset URLs appear once. Escape closes the viewer; closing restores focus and unlocks page scrolling. Gallery keys use the source page's permalink, so separate posts and historical snapshots do not mix, including on lists and rendered comparisons. Article-list thumbnails retain their links to the article. Viewer UI is excluded from search indexing.
 - Current post pages own the sole comment thread.
 
 ## Hyvor Talk

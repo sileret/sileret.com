@@ -36,6 +36,10 @@
   min-width: 0;
 }
 
+.site-header-tools .site-nav a {
+  font-weight: 700;
+}
+
 .theme-toggle {
   display: inline-flex;
   flex-shrink: 0;

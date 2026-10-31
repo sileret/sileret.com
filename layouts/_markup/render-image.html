@@ -5,7 +5,7 @@
 {{- end -}}
 {{- if .Title -}}
 <figure class="image-figure">
-  <a href="{{ $src | safeURL }}">
+  <a href="{{ $src | safeURL }}" data-image-viewer data-image-gallery="{{ .Page.RelPermalink }}" data-image-caption="{{ .Title }}">
     <img
       src="{{ $src | safeURL }}"
       alt="{{ .PlainText }}"
@@ -17,7 +17,7 @@
   <figcaption class="tag image-caption">{{ .Title }}</figcaption>
 </figure>
 {{- else -}}
-<a href="{{ $src | safeURL }}">
+<a href="{{ $src | safeURL }}" data-image-viewer data-image-gallery="{{ .Page.RelPermalink }}" data-image-caption="{{ .PlainText }}">
   <img
     src="{{ $src | safeURL }}"
     alt="{{ .PlainText }}"
