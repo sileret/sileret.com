@@ -1,0 +1,15 @@
+{{- $history := dict -}}
+{{- $histories := hugo.Data.generated_post_history | default dict -}}
+{{- if and (eq .Section "posts") .File -}}
+  {{- $history = index $histories .File.Path | default dict -}}
+{{- else -}}
+  {{- with .Params.current_url -}}
+    {{- $currentURL := . -}}
+    {{- range $histories -}}
+      {{- if eq .current_url $currentURL -}}
+        {{- $history = . -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- return $history -}}

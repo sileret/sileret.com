@@ -1,0 +1,34 @@
+<aside class="post-version-sidebar home-sidebar" aria-label="Updates and exploration">
+  {{ with partial "recently-updated.html" . }}
+    <section aria-labelledby="recent-updates-heading" id="recent-updates">
+      <h2 id="recent-updates-heading">Recently updated</h2>
+      <ol class="post-version-list">
+        {{ range . }}
+          <li>
+            <a class="sidebar-post-title" href="{{ .url }}">{{ .title }}</a>
+            <time class="version-time" datetime="{{ .date.Format "2006-01-02T15:04:05Z07:00" }}">Updated {{ .date.Format "Jan 2, 2006" }}</time>
+            {{ with .summary }}<p class="version-description">{{ . }}</p>{{ end }}
+            {{ with .changes_url }}<a href="{{ . }}">See changes</a>{{ end }}
+          </li>
+        {{ end }}
+      </ol>
+    </section>
+  {{ end }}
+  <nav aria-labelledby="explore-heading">
+    <h2 id="explore-heading">Explore</h2>
+    {{ $topics := slice }}
+    {{ range .Site.Taxonomies.tags.ByCount }}
+      {{ $published := where (where .Pages "Section" "posts") "Draft" false }}
+      {{ if gt (len $published) 0 }}
+        {{ $topics = $topics | append (dict "title" .Page.Title "url" .Page.RelPermalink "count" (len $published)) }}
+      {{ end }}
+    {{ end }}
+    <ul class="explore-links">
+      {{ range first 5 (sort $topics "count" "desc") }}
+        <li><a href="{{ .url }}">{{ .title }}</a> <span class="topic-count">({{ .count }})</span></li>
+      {{ end }}
+      <li><a href="/posts/">All posts</a></li>
+      {{ if gt (len $topics) 5 }}<li><a href="/tags/">All topics</a></li>{{ end }}
+    </ul>
+  </nav>
+</aside>

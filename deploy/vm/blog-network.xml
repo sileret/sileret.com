@@ -1,0 +1,7 @@
+<network>
+  <name>blog-dmz</name>
+  <forward mode='nat' dev='eno1'/>
+  <bridge name='virbr-blog' stp='on' delay='0'/>
+  <dns enable='no'/>
+  <ip address='192.168.231.1' netmask='255.255.255.252'/>
+</network>

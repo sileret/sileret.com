@@ -1,0 +1,24 @@
+<domain type="kvm">
+  <name>prod-blog-01</name>
+  <uuid>f54a694b-9691-4610-97b2-0784b12f9c71</uuid>
+  <memory unit="MiB">768</memory><currentMemory unit="MiB">768</currentMemory>
+  <vcpu placement="static">1</vcpu>
+  <os firmware="efi"><type arch="x86_64" machine="q35">hvm</type><boot dev="hd"/></os>
+  <features><acpi/><apic/></features>
+  <cpu mode="host-passthrough" check="none"/>
+  <clock offset="utc"/>
+  <on_poweroff>destroy</on_poweroff><on_reboot>restart</on_reboot><on_crash>destroy</on_crash>
+  <devices>
+    <emulator>/usr/bin/qemu-system-x86_64</emulator>
+    <disk type="file" device="disk"><driver name="qemu" type="qcow2" cache="none" discard="unmap"/><source file="/var/lib/libvirt/images/prod-blog-01.qcow2"/><target dev="vda" bus="virtio"/></disk>
+    <disk type="file" device="cdrom"><driver name="qemu" type="raw"/><source file="/var/lib/libvirt/boot/prod-blog-01-seed.iso"/><target dev="sda" bus="sata"/><readonly/></disk>
+    <interface type="network"><mac address="52:54:00:b1:00:01"/><source network="blog-dmz"/><model type="virtio"/>
+      <filterref filter="blog-dmz-only"><parameter name="IP" value="192.168.231.2"/><parameter name="CTRL_IP_LEARNING" value="none"/></filterref>
+    </interface>
+    <serial type="pty"><target port="0"/></serial>
+    <console type="pty"><target type="serial" port="0"/></console>
+    <channel type="unix"><target type="virtio" name="org.qemu.guest_agent.0"/></channel>
+    <rng model="virtio"><backend model="random">/dev/urandom</backend></rng>
+    <memballoon model="virtio"/>
+  </devices>
+</domain>

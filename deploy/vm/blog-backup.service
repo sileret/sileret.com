@@ -1,0 +1,16 @@
+[Unit]
+Description=Back up blog comments and service configuration
+After=artalk.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/blog/backup.sh
+UMask=0077
+Nice=15
+CPUQuota=25%
+MemoryMax=64M
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/backups/blog
+ReadOnlyPaths=/var/lib/artalk /etc/artalk /etc/caddy /etc/blog

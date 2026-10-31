@@ -8,6 +8,7 @@ import re
 import shutil
 import subprocess
 from dataclasses import dataclass
+from difflib import SequenceMatcher
 from pathlib import Path
 
 
@@ -127,6 +128,66 @@ def show_file(commit: str, path: str, *, text: bool = True):
     return git("show", f"{commit}:{path}", text=text).stdout
 
 
+def word_changes(before: str, after: str) -> list[dict[str, str]]:
+    """Keep punctuation and spacing, without treating Markdown as trusted HTML."""
+    old = re.findall(r"\w+|[^\w\s]|\s+", before)
+    new = re.findall(r"\w+|[^\w\s]|\s+", after)
+    segments = []
+    for operation, a, b, c, d in SequenceMatcher(None, old, new, autojunk=False).get_opcodes():
+        if operation == "equal":
+            segments.append({"kind": "equal", "text": "".join(new[c:d])})
+        else:
+            if a != b:
+                segments.append({"kind": "delete", "text": "".join(old[a:b])})
+            if c != d:
+                segments.append({"kind": "insert", "text": "".join(new[c:d])})
+    return segments
+
+
+def comparison_changes(before: str, after: str) -> dict:
+    old_meta, old_body = split_front_matter(before)
+    new_meta, new_body = split_front_matter(after)
+    old_title, new_title = old_meta.get("title", ""), new_meta.get("title", "")
+    return {
+        "title_changes": word_changes(old_title, new_title) if old_title != new_title else [],
+        "has_content_changes": old_body.strip() != new_body.strip(),
+    }
+
+
+def write_changes_page(
+    revision: Revision,
+    previous: Revision,
+    stable_id: str,
+    slug: str,
+    current_url: str,
+    previous_url: str,
+    before: str,
+    after: str,
+) -> str:
+    changes_url = f"/posts/{slug}/versions/{revision.short_commit}/changes/"
+    destination = GENERATED_CONTENT_DIR / stable_id / f"{revision.short_commit}-changes.md"
+    metadata = {
+        "title": f"What changed — {split_front_matter(after)[0].get('title') or slug}",
+        "url": changes_url,
+        "type": "post-versions",
+        "layout": "post-changes",
+        "robots": "noindex, follow",
+        "current_url": current_url,
+        "version_url": f"/posts/{slug}/versions/{revision.short_commit}/",
+        "previous_url": previous_url,
+        "version_date": revision.date,
+        "previous_date": previous.date,
+        "subject": revision.subject,
+        **comparison_changes(before, after),
+        "before_page": f"/post-versions/{stable_id}/{previous.short_commit}",
+        "after_page": f"/post-versions/{stable_id}/{revision.short_commit}",
+        "build": {"list": "never", "render": "always"},
+    }
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return changes_url
+
+
 def copy_bundle_assets(revision: Revision, destination: Path) -> None:
     bundle_path = str(Path(revision.path).parent)
     tree = git("ls-tree", "-r", "--name-only", revision.commit, "--", bundle_path)
@@ -144,6 +205,7 @@ def write_version_page(
     stable_id: str,
     slug: str,
     current_url: str,
+    changes_url: str = "",
 ) -> str:
     markdown = show_file(revision.commit, revision.path)
     front_matter, body = split_front_matter(markdown)
@@ -159,6 +221,7 @@ def write_version_page(
         "version_date": revision.date,
         "commit": revision.commit,
         "current_url": current_url,
+        "changes_url": changes_url,
         "url": version_url,
         "type": "post-versions",
         "layout": "post-version",
@@ -194,11 +257,22 @@ def generate() -> dict[str, dict]:
         oldest_revision = revisions[-1]
         stable_id = f"post-{oldest_revision.commit[:12]}"
         version_entries = []
+        revision_sources = [show_file(revision.commit, revision.path) for revision in revisions]
         for position, revision in enumerate(revisions):
             is_current = position == 0
-            url = current_url
+            url = current_url if is_current else f"/posts/{slug}/versions/{revision.short_commit}/"
+            changes_url = ""
+            if position + 1 < len(revisions):
+                previous = revisions[position + 1]
+                changes_url = write_changes_page(
+                    revision, previous, stable_id, slug, current_url,
+                    f"/posts/{slug}/versions/{previous.short_commit}/",
+                    revision_sources[position + 1], revision_sources[position],
+                )
+            # Render both sides from exact committed snapshots, including the newest.
+            snapshot_url = write_version_page(revision, stable_id, slug, current_url, changes_url)
             if not is_current:
-                url = write_version_page(revision, stable_id, slug, current_url)
+                url = snapshot_url
             version_entries.append(
                 {
                     "commit": revision.commit,
@@ -207,6 +281,7 @@ def generate() -> dict[str, dict]:
                     "subject": revision.subject,
                     "url": url,
                     "current": is_current,
+                    "changes_url": changes_url,
                 }
             )
 

@@ -1,5 +1,12 @@
 # External services
 
+There is also a private, self-hosted VM staging deployment using Artalk comments
+and GoAccess log analytics. See `docs/vm-deployment.md` and `deploy/vm/` for its
+configuration, isolation tests, access and operational limits. It uses
+`deploy/vm/hugo.toml` as a build-time override; the main Hyvor/Cloudflare settings
+below remain the production configuration until cutover. Permanent comment IDs
+must be preserved through any eventual provider migration.
+
 The site is prepared for Hyvor Talk comments and Cloudflare Pages Web Analytics. Both require one-time configuration in their respective dashboards.
 
 ## Hyvor Talk comments

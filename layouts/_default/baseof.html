@@ -1,4 +1,8 @@
 <!doctype html>
+{{ $history := partial "post-history.html" . }}
+{{ $hasHistory := gt (len ($history.versions | default slice)) 1 }}
+{{ $hasToc := and (eq .Kind "page") (eq .Section "posts") (eq (lower (.Params.format | default "article")) "article") (gt (len (plainify .TableOfContents)) 0) }}
+{{ $hasSidebar := or .IsHome $hasHistory $hasToc }}
 <html lang="en">
   <head>
     <meta charset="utf-8">
@@ -8,9 +12,12 @@
     {{ with .Params.description }}<meta name="description" content="{{ . }}">{{ end }}
     {{ with .Params.robots }}<meta name="robots" content="{{ . }}">{{ end }}
     <link rel="canonical" href="{{ .Permalink }}">
+    <link rel="alternate" type="application/rss+xml" title="{{ .Site.Title }} posts" href="{{ "posts/index.xml" | absURL }}">
     <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/post-history.css">
+    <script src="/site-navigation.js" defer></script>
   </head>
-  <body>
+  <body id="page-top"{{ if $hasSidebar }} class="has-sidebar{{ if $hasHistory }} has-post-history{{ end }}"{{ end }}>
     <div class="wrap">
       <header class="site-header">
         <a class="site-title" href="/">{{ .Site.Title }}</a>
@@ -18,15 +25,27 @@
           <a href="/about/">About</a>
           <a href="/posts/">Posts</a>
           <a href="/tags/">Tags</a>
+          <a href="/posts/index.xml">RSS</a>
+          {{ if .Site.Params.search.enabled }}<a href="/search/">Search</a>{{ end }}
         </nav>
       </header>
       <main class="page">
+        {{ if $hasSidebar }}<div class="post-layout">{{ end }}
         {{ block "main" . }}{{ end }}
+        {{ if $hasSidebar }}
+          {{ if .IsHome }}
+            {{ partial "home-sidebar.html" . }}
+          {{ else }}
+            {{ partial "post-history-sidebar.html" (dict "history" $history "page" . "toc" $hasToc) }}
+          {{ end }}
+          </div>
+        {{ end }}
       </main>
       <footer class="site-footer">
         <span>© {{ now.Format "2006" }} {{ .Site.Title }}</span>
       </footer>
     </div>
+    <a class="scroll-to-top" href="#page-top"><span aria-hidden="true">↑</span> Scroll to top</a>
     {{ partial "comment-count-loader.html" . }}
   </body>
 </html>

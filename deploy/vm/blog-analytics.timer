@@ -1,0 +1,10 @@
+[Unit]
+Description=Update private blog traffic reports every 15 minutes
+
+[Timer]
+OnBootSec=3min
+OnUnitInactiveSec=15min
+RandomizedDelaySec=30s
+
+[Install]
+WantedBy=timers.target

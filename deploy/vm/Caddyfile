@@ -1,0 +1,78 @@
+{
+	admin localhost:2019
+	auto_https off
+}
+
+# Private staging only. Public HTTPS is a separate, reviewed cutover.
+http://192.168.231.2, http://localhost {
+	bind 192.168.231.2 127.0.0.1
+	encode zstd gzip
+	header {
+		-Server
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options SAMEORIGIN
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+	}
+	log {
+		output file /var/log/caddy/blog-access.json {
+			roll_size 16MiB
+			roll_keep 14
+			roll_keep_for 336h
+			mode 0640
+		}
+		format filter {
+			wrap json
+			fields {
+				request>remote_ip ip_mask {
+					ipv4 16
+					ipv6 32
+				}
+				request>client_ip ip_mask {
+					ipv4 16
+					ipv6 32
+				}
+				request>remote_port delete
+				request>headers>Cookie delete
+				request>headers>Authorization delete
+				request>headers>X-Forwarded-For delete
+				request>uri regexp "[?].*$" ""
+				request>headers>Referer regexp "[?#].*$" ""
+			}
+		}
+	}
+	@privateOnly {
+		path /admin* /stats* /comments/sidebar* /comments/swagger* /comments/api/v2/admin* /comments/api/v2/setting* /comments/api/v2/sites* /comments/api/v2/users* /comments/api/v2/pages* /comments/api/v2/cache* /comments/api/v2/transfer* /comments/api/v2/user/access_token
+		not remote_ip 192.168.231.1 127.0.0.1
+	}
+	@privateMutation {
+		path /comments/api/v2/*
+		method PUT PATCH DELETE
+		not remote_ip 192.168.231.1 127.0.0.1
+	}
+	# route preserves this order; generic handle blocks otherwise run before respond.
+	route {
+		respond @privateOnly 404
+		respond @privateMutation 404
+		handle_path /comments/* {
+			request_body {
+				max_size 64KB
+			}
+			reverse_proxy 127.0.0.1:23366 {
+				header_up X-Forwarded-For {remote_host}
+				header_up X-Real-IP {remote_host}
+			}
+		}
+		handle_path /stats/* {
+			root * /var/lib/blog-analytics
+			file_server
+		}
+		handle /avatar-disabled/* {
+			respond "" 204
+		}
+		handle {
+			root * /srv/blog/current
+			file_server
+		}
+	}
+}

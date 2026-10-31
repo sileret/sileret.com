@@ -1,0 +1,45 @@
+host: 127.0.0.1
+port: 23366
+locale: en
+timezone: Europe/Vienna
+site_default: sileret.com
+site_url: https://sileret.com
+login_timeout: 86400
+trusted_domains:
+  - https://sileret.com
+  - http://localhost:8088
+  - http://127.0.0.1:8088
+page_title_auto_fetch: false
+db:
+  type: sqlite
+  file: /var/lib/artalk/artalk.db
+http:
+  body_limit: 1
+  proxy_header: X-Forwarded-For
+cache:
+  enabled: false
+log:
+  enabled: false
+moderator:
+  pending_default: true
+  api_fail_block: true
+captcha:
+  enabled: true
+  always: true
+  captcha_type: image
+  action_limit: 3
+  action_reset: 60
+img_upload:
+  enabled: false
+  path: /var/lib/artalk/uploads
+email:
+  enabled: false
+ip_region:
+  enabled: false
+frontend:
+  emoticons: false
+  versionCheck: false
+  pvEl: false
+  gravatar:
+    mirror: /avatar-disabled/
+    params: ''

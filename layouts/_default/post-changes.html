@@ -1,0 +1,43 @@
+{{ define "main" }}
+  <article class="post">
+    <header class="post-header">
+      <p class="meta">Version comparison</p>
+      <h1>{{ .Title }}</h1>
+      <p>{{ .Params.subject }}</p>
+      <p class="meta">
+        <a href="{{ .Params.previous_url }}">Earlier version: {{ time.Format "Jan 2, 2006 at 15:04 MST" .Params.previous_date }}</a>
+        →
+        <a href="{{ .Params.version_url }}">Updated version: {{ time.Format "Jan 2, 2006 at 15:04 MST" .Params.version_date }}</a>
+      </p>
+    </header>
+    <div class="content">
+      <p>Changes from the preceding version. <mark><ins>Highlighted and underlined text was added.</ins></mark> Open the earlier version below to see <del>removed text</del>.</p>
+      {{ with .Params.title_changes }}
+        <section>
+          <h2>Title change</h2>
+          <p>{{ range . }}{{ if eq .kind "delete" }}<del>{{ .text }}</del>{{ else if eq .kind "insert" }}<mark><ins>{{ .text }}</ins></mark>{{ else }}{{ .text }}{{ end }}{{ end }}</p>
+        </section>
+      {{ end }}
+      {{ if .Params.has_content_changes }}
+        <noscript><p>Enable JavaScript to highlight changes. Both formatted versions are available below.</p></noscript>
+        <p id="comparison-status" role="status"></p>
+        {{ with .Site.GetPage .Params.before_page }}
+          <details>
+            <summary>Earlier version with removed text</summary>
+            <div id="comparison-before" data-base-url="{{ .RelPermalink }}">{{ .Content | replaceRE `id="([^"]+)"` `id="earlier-$1"` | replaceRE `href="#` `href="#earlier-` | safeHTML }}</div>
+          </details>
+        {{ end }}
+        {{ with .Site.GetPage .Params.after_page }}
+          <section aria-labelledby="updated-post-heading">
+            <h2 id="updated-post-heading">Updated post</h2>
+            <div id="comparison-after" data-base-url="{{ .RelPermalink }}">{{ .Content }}</div>
+          </section>
+        {{ end }}
+      {{ else if not .Params.title_changes }}
+        <p>No changes to the title or post text. This revision changed only settings or surrounding whitespace.</p>
+      {{ end }}
+    </div>
+    <p><a href="{{ .Params.current_url }}">Return to the current post and comments →</a></p>
+  </article>
+  {{ if .Params.has_content_changes }}<script src="/post-changes.js" defer></script>{{ end }}
+{{ end }}

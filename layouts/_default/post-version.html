@@ -11,6 +11,7 @@
     </header>
     <aside>
       <p>This is a read-only historical version. Comments and discussion remain attached to the current post.</p>
+      {{ with .Params.changes_url }}<p><a href="{{ . }}">See what changed in this version</a></p>{{ end }}
     </aside>
     <div class="content">
       {{ .Content }}

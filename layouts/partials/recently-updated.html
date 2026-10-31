@@ -1,0 +1,17 @@
+{{- $updates := slice -}}
+{{- $posts := where (where .Site.RegularPages "Section" "posts") "Draft" false -}}
+{{- range $posts.ByLastmod.Reverse -}}
+  {{- if and (.Lastmod.After .Date) (ne .Params.show_update false) -}}
+    {{- $history := partial "post-history.html" . -}}
+    {{- if gt (len ($history.versions | default slice)) 1 -}}
+      {{- $latest := index $history.versions 0 -}}
+      {{- $updates = $updates | append (dict
+        "title" .Title
+        "url" .RelPermalink
+        "date" .Lastmod
+        "summary" (.Params.update_summary | default $latest.subject)
+        "changes_url" $latest.changes_url) -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- return (first 5 $updates) -}}

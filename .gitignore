@@ -9,3 +9,4 @@ __pycache__/
 .hugo_build.lock
 /content/post-versions/
 /data/generated_post_history.json
+/.tools/

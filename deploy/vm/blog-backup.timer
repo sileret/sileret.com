@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily blog comment backup
+
+[Timer]
+OnCalendar=*-*-* 03:20:00 Europe/Vienna
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

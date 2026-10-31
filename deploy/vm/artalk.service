@@ -1,0 +1,33 @@
+[Unit]
+Description=Blog comments (Artalk)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=artalk
+Group=artalk
+WorkingDirectory=/var/lib/artalk
+StateDirectory=artalk
+StateDirectoryMode=0700
+EnvironmentFile=/etc/artalk/secrets.env
+Environment=GOMEMLIMIT=96MiB GOMAXPROCS=1
+ExecStart=/usr/local/bin/artalk server -c /etc/artalk/artalk.yml
+Restart=on-failure
+RestartSec=5s
+UMask=0077
+MemoryHigh=112M
+MemoryMax=160M
+TasksMax=64
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_UNIX
+ReadWritePaths=/var/lib/artalk
+
+[Install]
+WantedBy=multi-user.target

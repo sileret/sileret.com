@@ -2,6 +2,11 @@
 
 This repository is a Hugo blog deployed through Cloudflare Pages.
 
+The active implementation also has a private Debian VM, `prod-blog-01`, on
+`prod-vmh-03`. Git auto-publishing follows `codex/private-blog`. Keep that VM
+private until the user explicitly requests public cutover; public `main` and
+the existing Cloudflare deployment must remain unchanged during private work.
+
 ## Scope
 
 - Make changes in place in this repository.
@@ -12,6 +17,7 @@ This repository is a Hugo blog deployed through Cloudflare Pages.
 
 - Before any work, read `docs/codex-project-notes.md` and use it as the repository-specific briefing.
 - For content or deployment work, also read `docs/authoring-and-publishing.md`.
+- For VM deployment work, also read `docs/vm-deployment.md`.
 - For comments or analytics work, also read `docs/services.md`.
 
 ## Important paths
@@ -95,7 +101,9 @@ For direct Markdown posts:
 4. Stage only the intended post bundle and related implementation files.
 5. Inspect `git diff --cached` and confirm no unintended posts are staged.
 6. Commit using a public-facing message; commit subjects appear in post version history.
-7. Push the Cloudflare Pages production branch.
+7. During private VM staging, push `codex/private-blog` and verify the VM's
+   publisher and deployed revision. Push the Cloudflare production branch only
+   when the user explicitly requests that public deployment.
 
 Do not use `scripts/publish.py` for a manual post. It is a separate Apple Notes synchronization workflow and can write or remove Notes-managed bundles.
 
@@ -110,6 +118,10 @@ The live script uses `Status: publish` or `Status: published` to select notes. O
 Only work on this workflow when the user explicitly returns to Apple Notes publishing.
 
 ## Operational safety
+
+- VM administration is limited to `prod-blog-01`. Leave the other VMs and the
+  shared libvirt network unchanged. Do not open public ports or change DNS as
+  part of routine Git publishing.
 
 - Never use destructive Git commands such as `git reset --hard` unless explicitly requested.
 - If unexpected local changes appear, stop and ask before overlapping or staging them.

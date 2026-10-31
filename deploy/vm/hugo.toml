@@ -1,0 +1,9 @@
+# Added to the normal config only for VM builds.
+[params.search]
+enabled = true
+
+[params.comments]
+enabled = true
+provider = "artalk"
+server = "/comments"
+site = "sileret.com"

@@ -1,0 +1,29 @@
+{{ $page := .page }}
+{{ $hasHistory := gt (len (.history.versions | default slice)) 1 }}
+  <aside class="post-version-sidebar" id="post-version-history" aria-label="Post navigation" data-pagefind-ignore{{ if not $hasHistory }} data-toc-only hidden{{ end }}>
+    {{ if .toc }}
+      <section class="sidebar-toc" aria-labelledby="sidebar-toc-heading" hidden>
+        <h2 id="sidebar-toc-heading">Contents</h2>
+        <div data-sidebar-toc></div>
+      </section>
+    {{ end }}
+    {{ if $hasHistory }}{{ with .history }}
+    <nav aria-labelledby="post-version-heading">
+      <h2 id="post-version-heading">Version history</h2>
+      <p class="version-current-post"><a href="{{ .current_url }}"{{ if eq $page.RelPermalink .current_url }} aria-current="page"{{ end }}>Current post</a></p>
+      <ol class="post-version-list">
+        {{ range .versions }}
+          {{ $snapshotURL := printf "%sversions/%s/" $.history.current_url .short_commit }}
+          <li>
+            <a class="version-date" href="{{ $snapshotURL }}"{{ if eq $page.RelPermalink $snapshotURL }} aria-current="page"{{ end }}>
+              <time datetime="{{ .date }}">{{ time.Format "Jan 2, 2006" .date }}<span class="version-time">{{ time.Format "15:04 MST" .date }}</span></time>
+            </a>
+            {{ if .current }}<span class="version-latest">Latest version</span>{{ end }}
+            {{ with .subject }}<p class="version-description">{{ . }}</p>{{ end }}
+            {{ with .changes_url }}<a class="version-changes" href="{{ . }}"{{ if eq $page.RelPermalink . }} aria-current="page"{{ end }}>What changed</a>{{ end }}
+          </li>
+        {{ end }}
+      </ol>
+    </nav>
+    {{ end }}{{ end }}
+  </aside>

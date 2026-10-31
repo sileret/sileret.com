@@ -1,5 +1,5 @@
 baseURL = "https://sileret.com/"
-title = "sileret"
+title = "a personal website"
 locale = "en-US"
 enableRobotsTXT = true
 pagination.pagerSize = 10

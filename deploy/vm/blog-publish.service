@@ -1,0 +1,22 @@
+[Unit]
+Description=Build and atomically publish blog from GitHub
+After=network-online.target
+ConditionPathExists=/etc/blog/enable-git-publishing
+
+[Service]
+Type=oneshot
+User=blogbuild
+Group=blogbuild
+ExecStart=/usr/local/lib/blog/publish.py
+Environment=GOMAXPROCS=1
+EnvironmentFile=-/etc/blog/publishing.env
+Nice=15
+CPUQuota=50%
+MemoryMax=256M
+TimeoutStartSec=10min
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/blog /var/lib/blogbuild
+RestrictAddressFamilies=AF_INET AF_UNIX

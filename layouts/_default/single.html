@@ -9,7 +9,7 @@
   {{ if and $isPost (eq $format "article") }}
     {{ $toc = .TableOfContents }}
   {{ end }}
-  <article class="post">
+  <article class="post"{{ if $isPost }} data-pagefind-body{{ end }}>
     <header class="post-header">
       <h1>{{ .Title }}</h1>
       <p class="meta">
@@ -17,6 +17,7 @@
         <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "Jan 2, 2006" }}</time>
         {{ if ne .Lastmod .Date }}<span class="meta-sep">•</span><span>Updated {{ .Lastmod.Format "Jan 2, 2006" }}</span>{{ end }}
         {{ if and $isPost (eq $format "article") }}<span class="meta-sep">•</span><span>{{ .ReadingTime }} min read</span>{{ end }}
+        {{ with $history }}{{ with (index .versions 0).changes_url }}<span class="meta-sep">•</span><a href="{{ . }}">See what changed</a>{{ end }}{{ end }}
       </p>
       {{ with .Params.tags }}
         <p class="tag-row">
@@ -35,27 +36,6 @@
     <div class="content">
       {{ .Content }}
     </div>
-    {{ with $history }}
-      {{ if gt (len .versions) 1 }}
-        <details class="post-history">
-          <summary>Version history ({{ len .versions }} versions)</summary>
-          <ol>
-            {{ range .versions }}
-              <li>
-                <time datetime="{{ .date }}">{{ time.Format "Jan 2, 2006" .date }}</time>
-                —
-                {{ if .current }}
-                  Current version
-                {{ else }}
-                  <a href="{{ .url }}">View this version</a>
-                {{ end }}
-                {{ with .subject }}<span class="meta"> — {{ . }}</span>{{ end }}
-              </li>
-            {{ end }}
-          </ol>
-        </details>
-      {{ end }}
-    {{ end }}
-    {{ if $isPost }}{{ partial "comments.html" . }}{{ end }}
+    {{ if $isPost }}<div data-pagefind-ignore>{{ partial "comments.html" . }}</div>{{ end }}
   </article>
 {{ end }}

@@ -3,6 +3,9 @@
   {{- $commentsEnabled = .Params.comments -}}
 {{- end -}}
 {{- $websiteID := .Site.Params.comments.websiteId -}}
+{{- if and $commentsEnabled (eq .Section "posts") .Site.Params.comments.enabled .Site.Params.comments.server (eq .Site.Params.comments.provider "artalk") -}}
+  <a href="{{ .RelPermalink }}#comments">Comments</a>
+{{- end -}}
 {{- if and $commentsEnabled (eq .Section "posts") .Site.Params.comments.enabled $websiteID (eq .Site.Params.comments.provider "hyvor") -}}
   {{- $commentID := partial "post-comment-id.html" . -}}
   <a href="{{ .RelPermalink }}#comments">

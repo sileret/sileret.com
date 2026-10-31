@@ -5,5 +5,7 @@
 {{- if and $commentsEnabled .Site.Params.comments.enabled -}}
   {{- if eq .Site.Params.comments.provider "hyvor" -}}
     {{- partial "comments/hyvor.html" . -}}
+  {{- else if eq .Site.Params.comments.provider "artalk" -}}
+    {{- partial "comments/artalk.html" . -}}
   {{- end -}}
 {{- end -}}

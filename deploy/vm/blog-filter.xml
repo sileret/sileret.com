@@ -1,0 +1,34 @@
+<!-- Applied only to prod-blog-01. Never edit shared libvirt filters. -->
+<filter name='blog-dmz-only' chain='root'>
+  <uuid>58032033-f1ef-4bc6-a330-f3c400967e80</uuid>
+  <filterref filter='no-mac-spoofing'/>
+  <filterref filter='no-ip-spoofing'/>
+  <filterref filter='no-arp-spoofing'/>
+  <rule action='accept' direction='out' priority='-650'><mac protocolid='ipv4'/></rule>
+  <rule action='accept' direction='in' priority='-650'><mac protocolid='ipv4'/></rule>
+  <rule action='accept' direction='inout' priority='-500'><mac protocolid='arp'/></rule>
+  <filterref filter='no-other-l2-traffic'/>
+  <rule action='drop' direction='inout' priority='90'><all state='INVALID'/></rule>
+  <rule action='accept' direction='inout' priority='100'><all state='ESTABLISHED,RELATED'/></rule>
+  <!-- Block lateral movement, metadata endpoints, VPNs and the host's public IP. -->
+  <rule action='drop' direction='out' priority='200'><all dstipaddr='0.0.0.0' dstipmask='8'/></rule>
+  <rule action='drop' direction='out' priority='200'><all dstipaddr='10.0.0.0' dstipmask='8'/></rule>
+  <rule action='drop' direction='out' priority='200'><all dstipaddr='100.64.0.0' dstipmask='10'/></rule>
+  <rule action='drop' direction='out' priority='200'><all dstipaddr='127.0.0.0' dstipmask='8'/></rule>
+  <rule action='drop' direction='out' priority='200'><all dstipaddr='169.254.0.0' dstipmask='16'/></rule>
+  <rule action='drop' direction='out' priority='200'><all dstipaddr='172.16.0.0' dstipmask='12'/></rule>
+  <rule action='drop' direction='out' priority='200'><all dstipaddr='192.168.0.0' dstipmask='16'/></rule>
+  <rule action='drop' direction='out' priority='200'><all dstipaddr='151.80.20.219'/></rule>
+  <rule action='drop' direction='out' priority='200'><all dstipaddr='224.0.0.0' dstipmask='3'/></rule>
+  <!-- Private administration and preview only; no public inbound rule. -->
+  <rule action='accept' direction='in' priority='150'><tcp srcipaddr='192.168.231.1' dstportstart='22'/></rule>
+  <rule action='accept' direction='in' priority='150'><tcp srcipaddr='192.168.231.1' dstportstart='80'/></rule>
+  <rule action='accept' direction='out' priority='500'><tcp dstportstart='80'/></rule>
+  <rule action='accept' direction='out' priority='500'><tcp dstportstart='443'/></rule>
+  <rule action='accept' direction='out' priority='500'><udp dstipaddr='1.1.1.1' dstportstart='53'/></rule>
+  <rule action='accept' direction='out' priority='500'><udp dstipaddr='9.9.9.9' dstportstart='53'/></rule>
+  <rule action='accept' direction='out' priority='500'><tcp dstipaddr='1.1.1.1' dstportstart='53'/></rule>
+  <rule action='accept' direction='out' priority='500'><tcp dstipaddr='9.9.9.9' dstportstart='53'/></rule>
+  <rule action='accept' direction='out' priority='500'><udp dstportstart='123'/></rule>
+  <rule action='drop' direction='inout' priority='1000'><all/></rule>
+</filter>

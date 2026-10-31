@@ -1,0 +1,16 @@
+{{- with .Site.Params.comments.server -}}
+  {{- $server := strings.TrimSuffix "/" . -}}
+  <section id="comments" aria-labelledby="comments-heading" data-pagefind-ignore>
+    <h2 id="comments-heading">Comments</h2>
+    <p>Comments are reviewed before publication. Please keep your email private in the comment text.</p>
+    <link rel="stylesheet" href="{{ $server }}/dist/Artalk.css">
+    <div id="artalk-comments"
+      data-server="{{ $server }}"
+      data-site="{{ $.Site.Params.comments.site | default "sileret.com" }}"
+      data-page-key="{{ partial "post-comment-id.html" $ }}"
+      data-page-title="{{ $.Title }}"></div>
+    <script defer src="{{ $server }}/dist/Artalk.js"></script>
+    <script defer src="/artalk-init.js"></script>
+    <noscript>Enable JavaScript to read or submit comments.</noscript>
+  </section>
+{{- end -}}

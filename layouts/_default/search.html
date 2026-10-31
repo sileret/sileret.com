@@ -1,0 +1,15 @@
+{{ define "main" }}
+  <section aria-labelledby="search-heading" data-pagefind-ignore>
+    <h1 id="search-heading">Search</h1>
+    {{ if .Site.Params.search.enabled }}
+      <link href="/pagefind/pagefind-component-ui.css" rel="stylesheet">
+      <script src="/pagefind/pagefind-component-ui.js" type="module"></script>
+      <pagefind-input></pagefind-input>
+      <pagefind-summary></pagefind-summary>
+      <pagefind-results></pagefind-results>
+      <noscript>Enable JavaScript to search the blog.</noscript>
+    {{ else }}
+      <p>Search is available on the VM deployment.</p>
+    {{ end }}
+  </section>
+{{ end }}
