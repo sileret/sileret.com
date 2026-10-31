@@ -15,13 +15,13 @@ I also made a short [video](https://www.youtube.com/watch?v=EPdKS7BZ7M8) that co
 
 ## David Magerman
 
-[David Magerman](http://www-cs-students.stanford.edu/~magerman/) was deeply involved in building RenTec&rsquo;s trading systems beginning in the mid-1990s. I found two videos on YouTube in which he talks about some of the technical background of the company and offers interesting anecdotes regarding his work there. Keep in mind that some of the information could be outdated since Magerman left the company in May 2017.
+According to the book, [David Magerman](http://www-cs-students.stanford.edu/~magerman/) was deeply involved in building RenTec&rsquo;s trading systems beginning in the mid-1990s. I found two videos on YouTube in which he talks about some of the technical background of the company and offers interesting anecdotes regarding his work there. Keep in mind that some of the information could be outdated since Magerman left the company in May 2017.
 
 In the [first video](https://youtu.be/_mu2LbPIhR4?start=772&end=823) (relevant part 12:53-13:43) he gives an example of how important it is to not use unnecessarily complex solutions by explaining that instead of a database they used human-readable ASCII files as a storage format:
 
 > “This design was so useful, for so many other reasons, we never found the value in switching to a more complex database storage format. Years and years later, we continue to reap the benefits of that simple solution and thank the engineering gods that we never moved away from it.”
 >
-> — David Magerman
+> David Magerman
 
 Looking at current (September 2020) [job openings](https://www.rentec.com/Careers.action) shows that all roles related directly to trading do not mention any database software; the company is looking for researchers/programmers with “expert level knowledge of C/C++/C++11 and programming tools in a Linux/Unix environment”. The only job role that mentions a database (PostgreSQL) is related to fund administration ("post-trade activities including fund accounting, risk reporting", and more).
 
